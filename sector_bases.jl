@@ -38,6 +38,14 @@ struct Basis
     #e.g. q_numbers = [("K",1),("Sz",3)]
 end
 
+#more general version for the "univeral" constructor
+struct Basis2
+    #type for storing a basis with various quantum numbers
+    get_conj_class :: Dict{UInt64,BasisVector} #gets basis vector for any state
+    conj_classes :: Dict{UInt64,ConjClass}    #gets index and norm of a conjugacy class
+    q_numbers :: Dict{String,Int} #list of quantum numbers for the state
+    #e.g. q_numbers = [("K",1),("Sz",3)]
+end
 
 
 ##################### Symmetry operations  #########################
@@ -293,7 +301,7 @@ function make_Sz_Tr_basis(L :: Int, N_up_A :: Int, K :: Int)
     return Basis(basis, reps,[("N_up_A",N_up_A),("K",K)])
 end
 
-if testing
+if testing3
     println("Testing a basis with both Sz and Translation")
 
     L = 8
@@ -303,20 +311,20 @@ if testing
     println(collect(Set(values(SzTrbasis.get_conj_class))))
 
 
-    Delta = 0.8
-    alpha = 0.1
-    g_tau  = 0.3
-    u_tau = 0.1
-    B_scale = 1.0
+    # Delta = 0.8
+    # alpha = 0.1
+    # g_tau  = 0.3
+    # u_tau = 0.1
+    # B_scale = 1.0
 
-    abstract_hamiltonian = make_XXZ_star_operators(L,Delta,alpha,g_tau,u_tau,B_scale)
-    #map(println,make_XXZ_operators(6,0.8))
-    H = make_Hamiltonian(L,SzTrbasis,abstract_hamiltonian)
-    evs = eigfact(Matrix(H))
+    # abstract_hamiltonian = make_XXZ_star_operators(L,Delta,alpha,g_tau,u_tau,B_scale)
+    # #map(println,make_XXZ_operators(6,0.8))
+    # H = make_Hamiltonian(L,SzTrbasis,abstract_hamiltonian)
+    # evs = eigfact(Matrix(H))
 
-    println(evs[:values])
+    # println(evs[:values])
 
-    println(SzTrbasis.get_conj_class[UInt(153)])
+    #println(SzTrbasis.get_conj_class[UInt(153)])
 
     #this seems to work against quspin
 end
@@ -442,4 +450,171 @@ if testing
     evs = eigfact(Matrix(H))
 
     println(evs[:values])
+end
+
+
+
+
+############ Make a "universal" basis for any implemented symmetry
+
+
+function get_orbit_function(L :: Int, unitCellSize :: Int, symmetries :: Dict{String,Int})
+    #L - length
+    #unitCellSize - size of the unit cell
+    #symmetries - Array of the symmetries, e.g [("Sz", 2),("K",-2)]
+    #returns - a function that creates orbits from valid basis elements
+
+    #this is a placeholder for now
+
+    return x -> make_orbit_K(L, unitCellSize, symmetries["K"],x)
+end
+
+
+struct ORBIT
+	norm :: Float64
+	representative :: UInt64
+	elements :: Dict{UInt64,ComplexF64}
+end
+
+function make_orbit_K(L :: Int, a :: Int, K :: Int, x :: UInt64)
+
+	G_k_size = div(L,a)
+	w = exp(- (2 * pi * im * K)/G_k_size)
+	phase_factor :: ComplexF64 = 1.0
+	norm_x :: ComplexF64 = 1.0
+	representative = x
+
+	O_x = Dict{UInt64,ComplexF64}(x => phase_factor)
+	sizehint!(O_x,G_k_size)
+
+	c1 = UInt64(2^L-1)
+	for g = a : a : (L-1)
+		shift = x << g
+		gx = (shift & c1) | ((shift & ~c1) >> L)
+		phase_factor *= w
+
+		if gx == x
+			norm_x += phase_factor
+		else 
+			if !haskey(O_x,gx) 
+				O_x[gx] = phase_factor
+				if gx < representative
+					representative = gx
+				end
+			end
+		end
+	end
+
+	if abs(norm_x) >= 10e-14
+		return Nullable(ORBIT(real(numchop(norm_x)), representative, O_x))
+	else
+		return Nullable{ORBIT}()
+	end 
+end
+
+
+if testing3
+	println("Testing making translation orbit")
+	orb = get(make_orbit_K(4,1,1,UInt64(1)))
+	println(orb)
+	k = collect(keys(orb.elements))
+	display_states(k)
+end
+
+function make_universal_basis(L :: Int, unitCellSize :: Int, symmetries :: Dict{String,Int})
+    #L - length
+    #unitCellSize - size of the unit cell
+    #symmetries - Array of the symmetries, e.g [("Sz", 2),("K",-2)]
+
+    #list all our states. For *really* huge sizes this is impractical, but it's easier here for now
+    states = [UInt64(s) for s in 0:(2^L)-1]
+
+    #if we have an SzA sector restriction, use it first
+    if haskey(symmetries,"SzA") 
+    	N_up_A = symmetries["SzA"]
+    	states = filter(s -> measure_N_up_A(s,L) == N_up_A, states)
+    end
+
+    #figure out which symmetry function we want to use
+   	make_orbit = get_orbit_function(L,unitCellSize,symmetries)
+
+    #really this should be some sorted data structure, but
+    #not sure how Julia stores things internally so
+    #a dict for now
+    elements = Dict{UInt64,UInt64}()
+    #count how many basis elements we have
+    num_basis_elements = 0
+
+    #initialize our arrays
+    basis_array = Array{Tuple{UInt64,BasisVector},1}(uninitialized,0)
+    reps_array = Array{Tuple{UInt64,ConjClass},1}(uninitialized,0)
+    
+
+    #loop over states in this sector
+    for x in states
+        #if x is not present in elements, do...
+        get(elements,x) do
+        	
+        	orbit = make_orbit(x)
+
+        	if !isnull(orbit)
+  				orbit = get(orbit)
+  				(norm_x,conj_class_x,O_x) = (orbit.norm, orbit.representative, orbit.elements)
+
+                elem = Dict([y => conj_class_x for y in collect(keys(O_x))])
+                merge!(elements,elem)
+
+                # basis_array_x = collect(Set([(orbit_x[r],
+                #                  BasisVector(conj_class_x,numchop(1/phase_factors[r])))
+                #                  for r in 1:G_size]))
+                basis_array_x = [(gx, BasisVector(conj_class_x, numchop(1/pf_x))) for (gx, pf_x) in O_x]
+                append!(basis_array,basis_array_x)
+
+                if imag(norm_x) >= 10e-15
+                    error("error: Large imaginary part of norm!")
+                end
+                #offset by 1 for 1-indexing
+                reps_array_x = (conj_class_x, ConjClass(num_basis_elements+1,real(norm_x)))
+                push!(reps_array,reps_array_x)
+
+                #increment number of basis elements
+                num_basis_elements += 1
+            end
+        end
+    end
+
+    basis = Dict{UInt64,BasisVector}(basis_array)
+    reps = Dict{UInt64,ConjClass}(reps_array)
+
+    #return Basis2(basis, reps,symmetries])
+	return Basis(basis, reps, [Tuple(kv) for kv in symmetries])
+end
+
+
+if testing3
+    println("Testing a universal basis function")
+
+    L = 4
+
+    SzTrZ2basis = make_universal_basis(8,2,Dict("SzA" => 2,"K" => 0))
+    println(collect(Set(values(SzTrZ2basis.get_conj_class))))
+    println("Basis size:", length(SzTrZ2basis.conj_classes))
+    println(SzTrZ2basis.conj_classes)
+    display_states(collect(keys(SzTrZ2basis.conj_classes)))
+    println(SzTrZ2basis.q_numbers)
+
+
+    # Delta = 0.8
+    # alpha = 0.1
+    # g_tau  = 0.3
+    # u_tau = 0.1
+    # B_scale = 1.0
+
+    # abstract_hamiltonian = make_XXZ_star_operators(L,Delta,alpha,g_tau,u_tau,B_scale)
+
+    # #map(println,make_XXZ_operators(6,0.8))
+    # H = make_Hamiltonian(L,SzTrZ2basis,abstract_hamiltonian)
+    # evs = eigfact(Matrix(H))
+
+    # println(evs[:values])
 end
