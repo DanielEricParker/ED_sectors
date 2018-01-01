@@ -156,6 +156,10 @@ end
 
 
 
+function measure_N_up_A(s :: UInt64, L :: Int)
+    return Int(sum([(s & (1 << pl)) >> pl for pl = 1:2:L-1]))
+end
+
 
 
 
@@ -458,6 +462,26 @@ end
 ############ Make a "universal" basis for any implemented symmetry
 
 
+function get_valid_state_function(L :: Int, unitCellSize :: Int, symmetries :: Dict{String,Int})
+    #L - length
+    #unitCellSize - size of the unit cell
+    #symmetries - Array of the symmetries, e.g [("Sz", 2),("K",-2)]
+    #returns - a function that creates orbits from valid basis elements
+
+
+    if haskey(symmetries,"Sz")
+		N_up = symmetries["Sz"]
+    	return x -> measure_N_up(x,L) == N_up
+    elseif haskey(symmetries,"SzA") 
+    	N_up_A = symmetries["SzA"]
+    	return x -> measure_N_up_A(x,L) == N_up_A
+    elseif haskey(symmetries,"SzB") 
+    	N_up_B = symmetries["SzB"]
+    	return x -> measure_N_up_B(x,L) == N_up_B
+    end
+   
+end
+
 function get_orbit_function(L :: Int, unitCellSize :: Int, symmetries :: Dict{String,Int})
     #L - length
     #unitCellSize - size of the unit cell
@@ -479,10 +503,10 @@ end
 function make_orbit_K(L :: Int, a :: Int, K :: Int, x :: UInt64)
 
 	G_k_size = div(L,a)
-	w = exp(- (2 * pi * im * K)/G_k_size)
+	w :: ComplexF64 = exp(- (2 * pi * im * K)/G_k_size)
 	phase_factor :: ComplexF64 = 1.0
 	norm_x :: ComplexF64 = 1.0
-	representative = x
+	representative :: UInt64 = x
 
 	O_x = Dict{UInt64,ComplexF64}(x => phase_factor)
 	sizehint!(O_x,G_k_size)
@@ -490,7 +514,7 @@ function make_orbit_K(L :: Int, a :: Int, K :: Int, x :: UInt64)
 	c1 = UInt64(2^L-1)
 	for g = a : a : (L-1)
 		shift = x << g
-		gx = (shift & c1) | ((shift & ~c1) >> L)
+		gx :: UInt64 = (shift & c1) | ((shift & ~c1) >> L)
 		phase_factor *= w
 
 		if gx == x
@@ -526,66 +550,42 @@ function make_universal_basis(L :: Int, unitCellSize :: Int, symmetries :: Dict{
     #unitCellSize - size of the unit cell
     #symmetries - Array of the symmetries, e.g [("Sz", 2),("K",-2)]
 
-    #list all our states. For *really* huge sizes this is impractical, but it's easier here for now
-    states = [UInt64(s) for s in 0:(2^L)-1]
-
-    #if we have an SzA sector restriction, use it first
-    if haskey(symmetries,"SzA") 
-    	N_up_A = symmetries["SzA"]
-    	states = filter(s -> measure_N_up_A(s,L) == N_up_A, states)
-    end
+    #get a function to figure out which states are vald
+    is_valid_state = get_valid_state_function(L,unitCellSize,symmetries)
 
     #figure out which symmetry function we want to use
    	make_orbit = get_orbit_function(L,unitCellSize,symmetries)
 
-    #really this should be some sorted data structure, but
-    #not sure how Julia stores things internally so
-    #a dict for now
-    elements = Dict{UInt64,UInt64}()
-    #count how many basis elements we have
-    num_basis_elements = 0
+    # #count how many basis elements we have
+    num_basis_elements :: Int = 0
 
-    #initialize our arrays
-    basis_array = Array{Tuple{UInt64,BasisVector},1}(uninitialized,0)
-    reps_array = Array{Tuple{UInt64,ConjClass},1}(uninitialized,0)
-    
+    #initialize our Dicts
+	basis = Dict{UInt64,BasisVector}()
+    reps = Dict{UInt64,ConjClass}()
 
     #loop over states in this sector
-    for x in states
-        #if x is not present in elements, do...
-        get(elements,x) do
+    for x in [UInt64(s) for s in 0:(2^L)-1]
+    	if is_valid_state(x) && !haskey(basis,x)
         	
-        	orbit = make_orbit(x)
+        	Nullable_orbit = make_orbit(x)
 
-        	if !isnull(orbit)
-  				orbit = get(orbit)
+        	if !isnull(Nullable_orbit)
+  				orbit = get(Nullable_orbit)
   				(norm_x,conj_class_x,O_x) = (orbit.norm, orbit.representative, orbit.elements)
 
-                elem = Dict([y => conj_class_x for y in collect(keys(O_x))])
-                merge!(elements,elem)
+				for (gx, pf_x) in O_x
+					basis[gx] = BasisVector(conj_class_x, numchop(1/pf_x))
+				end
 
-                # basis_array_x = collect(Set([(orbit_x[r],
-                #                  BasisVector(conj_class_x,numchop(1/phase_factors[r])))
-                #                  for r in 1:G_size]))
-                basis_array_x = [(gx, BasisVector(conj_class_x, numchop(1/pf_x))) for (gx, pf_x) in O_x]
-                append!(basis_array,basis_array_x)
-
-                if imag(norm_x) >= 10e-15
-                    error("error: Large imaginary part of norm!")
-                end
                 #offset by 1 for 1-indexing
-                reps_array_x = (conj_class_x, ConjClass(num_basis_elements+1,real(norm_x)))
-                push!(reps_array,reps_array_x)
+                reps[conj_class_x] =  ConjClass(num_basis_elements+1,norm_x)
 
                 #increment number of basis elements
                 num_basis_elements += 1
             end
-        end
+	    end
     end
-
-    basis = Dict{UInt64,BasisVector}(basis_array)
-    reps = Dict{UInt64,ConjClass}(reps_array)
-
+  
     #return Basis2(basis, reps,symmetries])
 	return Basis(basis, reps, [Tuple(kv) for kv in symmetries])
 end
@@ -594,14 +594,14 @@ end
 if testing3
     println("Testing a universal basis function")
 
-    L = 4
+    # L = 4
 
-    SzTrZ2basis = make_universal_basis(8,2,Dict("SzA" => 2,"K" => 0))
-    println(collect(Set(values(SzTrZ2basis.get_conj_class))))
-    println("Basis size:", length(SzTrZ2basis.conj_classes))
-    println(SzTrZ2basis.conj_classes)
-    display_states(collect(keys(SzTrZ2basis.conj_classes)))
-    println(SzTrZ2basis.q_numbers)
+    # SzTrZ2basis = make_universal_basis(8,2,Dict("SzA" => 2,"K" => 0))
+    # println(collect(Set(values(SzTrZ2basis.get_conj_class))))
+    # println("Basis size:", length(SzTrZ2basis.conj_classes))
+    # println(SzTrZ2basis.conj_classes)
+    # display_states(collect(keys(SzTrZ2basis.conj_classes)))
+    # println(SzTrZ2basis.q_numbers)
 
 
     # Delta = 0.8

@@ -62,7 +62,7 @@ println(evs.values[1:10])
 end
 
 
-L = 8
+L = 16
 
 Delta = 0.8
 alpha = 0.1
@@ -70,15 +70,15 @@ g_tau  = 0.3
 u_tau = 0.1
 B_scale = 1.0
 
+@time SzTrbasis1 = make_Sz_Tr_basis(L,4,1)
 
-SzTrbasis1 = make_Sz_Tr_basis(8,2,3)
-println("Basis size:", length(SzTrbasis1.conj_classes))
-println(collect(Set(values(SzTrbasis1.get_conj_class))))
+#println("Basis size:", length(SzTrbasis1.conj_classes))
+#println(collect(Set(values(SzTrbasis1.get_conj_class))))
 
+@time SzTrbasis2 = make_universal_basis(L,2,Dict("SzA" => 4,"K" => 1))
 
-SzTrbasis2 = make_universal_basis(8,2,Dict("SzA" => 2,"K" => 3))
-println("Basis size:", length(SzTrbasis2.conj_classes))
-println(collect(Set(values(SzTrbasis2.get_conj_class))))
+#println("Basis size:", length(SzTrbasis2.conj_classes))
+#println(collect(Set(values(SzTrbasis2.get_conj_class))))
 
 
 abstract_hamiltonian = make_XXZ_star_operators_new(L,Delta,alpha,g_tau,u_tau,B_scale)
@@ -86,8 +86,8 @@ abstract_hamiltonian = make_XXZ_star_operators_new(L,Delta,alpha,g_tau,u_tau,B_s
 
 H1 = make_Hamiltonian(L,SzTrbasis1,abstract_hamiltonian)
 evs1 = eigfact(Matrix(H1))
-println(evs1.values)
+println(evs1.values[1:10])
 
 H2 = make_Hamiltonian(L,SzTrbasis2,abstract_hamiltonian)
 evs2 = eigfact(Matrix(H2))
-println(evs2.values)
+println(evs2.values[1:10])
