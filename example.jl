@@ -4,6 +4,7 @@
 ######################################################################
 
 testing3 = false
+testing4 = false
 
 
 include("main.jl")
@@ -12,36 +13,36 @@ include("main.jl")
 ###############Make a Hamiltonian constructor  #######################
 
 
-function abstract_XXZ_Hamiltonian(L :: Int, Delta :: Float64)
-    #L -- length of the spin chain
-    #Delta -- anisotropy parameter
-    H = HAMILTONIAN("XXZ", [])
-    for i in 0:L-1
-        H += term(0.5, OP("+",i), OP("-",(i+1)%L))
-        H += term(0.5, OP("-",i), OP("+",(i+1)%L))
-        H += term(Delta*1.0, OP("Z",i), OP("Z",(i+1)%L))
-    end
+# function abstract_XXZ_Hamiltonian(L :: Int, Delta :: Float64)
+#     #L -- length of the spin chain
+#     #Delta -- anisotropy parameter
+#     H = HAMILTONIAN("XXZ", [])
+#     for i in 0:L-1
+#         H += term(0.5, OP("+",i), OP("-",(i+1)%L))
+#         H += term(0.5, OP("-",i), OP("+",(i+1)%L))
+#         H += term(Delta*1.0, OP("Z",i), OP("Z",(i+1)%L))
+#     end
 
-    return H
-end
+#     return H
+# end
 
-#set parameters
-L = 8
-Delta = 0.8
+# #set parameters
+# L = 8
+# Delta = 0.8
 
-#make the basis
-basisFull = make_full_basis(L)
+# #make the basis
+# basisFull = make_full_basis(L)
 
-#make the abstract Hamiltonian
-abstract_H = abstract_XXZ_Hamiltonian(L,Delta)
+# #make the abstract Hamiltonian
+# abstract_H = abstract_XXZ_Hamiltonian(L,Delta)
 
-#make the Hamiltonian matrix
-H = make_Hamiltonian(L, basisFull, abstract_H)
+# #make the Hamiltonian matrix
+# H = make_Hamiltonian(L, basisFull, abstract_H)
 
-#diagonalize
-evs = eigfact(Matrix(H))
+# #diagonalize
+# evs = eigfact(Matrix(H))
 
-println(evs.values[1:10])
+# println(evs.values[1:10])
 
 
 
@@ -70,15 +71,25 @@ g_tau  = 0.3
 u_tau = 0.1
 B_scale = 1.0
 
-@time SzTrbasis1 = make_Sz_Tr_basis(L,4,1)
 
-#println("Basis size:", length(SzTrbasis1.conj_classes))
+
+
+@time SzTrbasis1 = make_Sz_Tr_flip_basis(L,4,0,-1)
+@time SzTrbasis1 = make_Sz_Tr_flip_basis(L,4,0,-1)
+
+println("Basis size:", length(SzTrbasis1.conj_classes))
 #println(collect(Set(values(SzTrbasis1.get_conj_class))))
+#println(SzTrbasis1.conj_classes)
+println(collect(Set(map(x -> x.norm,values(SzTrbasis1.conj_classes)))))
 
-@time SzTrbasis2 = make_universal_basis(L,2,Dict("SzA" => 4,"K" => 1))
 
-#println("Basis size:", length(SzTrbasis2.conj_classes))
+@time SzTrbasis2 = make_universal_basis(L,2,Dict("SzA" => 4,"K" => 0, "Z2B" => -1))
+@time SzTrbasis2 = make_universal_basis(L,2,Dict("SzA" => 4,"K" => 0, "Z2B" => -1))
+
+println("Basis size:", length(SzTrbasis2.conj_classes))
 #println(collect(Set(values(SzTrbasis2.get_conj_class))))
+#println(SzTrbasis2.conj_classes)
+println(collect(Set(map(x -> x.norm,values(SzTrbasis2.conj_classes)))))
 
 
 abstract_hamiltonian = make_XXZ_star_operators_new(L,Delta,alpha,g_tau,u_tau,B_scale)
@@ -86,8 +97,8 @@ abstract_hamiltonian = make_XXZ_star_operators_new(L,Delta,alpha,g_tau,u_tau,B_s
 
 H1 = make_Hamiltonian(L,SzTrbasis1,abstract_hamiltonian)
 evs1 = eigfact(Matrix(H1))
-println(evs1.values[1:10])
+println(real(evs1.values[1:10]))
 
 H2 = make_Hamiltonian(L,SzTrbasis2,abstract_hamiltonian)
 evs2 = eigfact(Matrix(H2))
-println(evs2.values[1:10])
+println(real(evs2.values[1:10]))

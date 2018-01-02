@@ -358,40 +358,37 @@ function make_Hamiltonian(L :: Int, basis :: Basis, abstract_Ham :: HAMILTONIAN)
     #reps - represenatives of conjugacy classes Dict
     #opsList - list of operators we want to add to the Hamiltonian
 
-
     dim = length(basis.conj_classes)
     H = spzeros(ComplexF64,dim,dim)
 
     #iterate over conjugacy classes
-    for x in keys(basis.conj_classes)
-        cc_x = basis.conj_classes[x]
+    for (x,cc_x) in basis.conj_classes
 
         #loop over terms in the Hamiltonian
         for term in abstract_Ham.terms
-            #find |y> = H |x>
+            #find |y> = H |x> ####ASSUMPTION: this is a state, not superposition
             y = apply_operators(VEC(1.0,x),term)
 
-            if ~is_Null_VEC(y)
-                bv_y = get(basis.get_conj_class,y.state,-1)
+            #check if the element exists --- it could have zero norm
+            if ~is_Null_VEC(y) && haskey(basis.get_conj_class,y.state)
 
-                #check if the element exists --- it could have zero norm
-                if bv_y != -1
-                    cc_y = basis.conj_classes[bv_y.conj_class]
+                bv_y = basis.get_conj_class[y.state]
+                cc_y = basis.conj_classes[bv_y.conj_class]
 
-                    #check if upper diagonal
-                    if cc_y.index >= cc_x.index
-                        #compute the matrix element --- see Note
-                        h_xy = sqrt(cc_y.norm/cc_x.norm) * bv_y.phase_factor * y.factor
-                        H[cc_x.index,cc_y.index] += h_xy
+                #check if upper diagonal
+                if cc_y.index >= cc_x.index
+                    #compute the matrix element --- see Note
+                    h_xy = sqrt(cc_y.norm/cc_x.norm) * bv_y.phase_factor * y.factor
+                    H[cc_x.index,cc_y.index] += h_xy
 
-                        #check if diagonal
-                        if cc_y.index > cc_x.index
-                             H[cc_y.index,cc_x.index] += conj(h_xy)
-                        end
+                    #check if diagonal
+                    if cc_y.index > cc_x.index
+                         H[cc_y.index,cc_x.index] += conj(h_xy)
                     end
+                end
                 # else
                 #     println("Warning: no target in basis for state ",y.state)
-                end
+                #end
             end
         end
     end
