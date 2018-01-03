@@ -156,7 +156,7 @@ end
 
 
 
-function measure_N_up_A(s :: UInt64, L :: Int)
+function measure_N_up_B(s :: UInt64, L :: Int)
     return Int(sum([(s & (1 << pl)) >> pl for pl = 1:2:L-1]))
 end
 

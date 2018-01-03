@@ -393,6 +393,9 @@ function make_Hamiltonian(L :: Int, basis :: Basis, abstract_Ham :: HAMILTONIAN)
         end
     end
     return H
+    #Making it Hermitian makes diagonalization ridiculously slow for unclear reasons right now
+    #maybe a bug?
+    #return Hermitian(H,:U)
 end 
 
 if testing2
