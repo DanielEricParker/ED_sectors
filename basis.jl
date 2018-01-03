@@ -194,7 +194,12 @@ end
 
 
 
-function apply_Z2B(L :: Int, Z2 :: Int, old_Orb :: ORBIT)
+function apply_Z2B(L :: Int, Z2B :: Int, old_Orb :: ORBIT)
+	#L - size of the spin chain
+	#Z2 - eigenvalue of the Z2B, must be +1 or -1
+	#old_Orb - the orbit so far, e.g. after applying translation symmetry
+	#returns - a Nullable(Orbit) with the Z2B flip symmetry applied
+
 	cc_x = old_Orb.representative
 	norm_x = old_Orb.norm
 	O_x = Dict{UInt64,ComplexF64}(old_Orb.elements)
@@ -207,10 +212,48 @@ function apply_Z2B(L :: Int, Z2 :: Int, old_Orb :: ORBIT)
 		
 		#this is literally the same code. There should be a better way to do this
 		if hgx == old_Orb.representative
-			norm_x += pf*Z2*old_Orb.norm
+			norm_x += pf*Z2B*old_Orb.norm
 		else
 			if !haskey(O_x,hgx)
-				O_x[hgx] = pf * Z2
+				O_x[hgx] = pf * Z2B
+				if hgx < cc_x
+					cc_x = hgx
+				end
+			end
+		end
+	end
+	if abs(norm_x) >= 10e-14
+		stab :: Int = length(O_x) == length(old_Orb.elements) ? 2 : 1
+		return Nullable(ORBIT(old_Orb.norm * stab , cc_x, O_x))
+	else
+		return Nullable{ORBIT}()
+	end 
+end
+
+
+
+function apply_Z2A(L :: Int, Z2A :: Int, old_Orb :: ORBIT)
+	#L - size of the spin chain
+	#Z2A - Z2A flip symmetry sector, must be +1 or -1
+	#old_Orb - the orbit so far, e.g. after applying translation symmetry
+	#returns - a Nullable(Orbit) with the Z2B flip symmetry applied
+
+	cc_x = old_Orb.representative
+	norm_x = old_Orb.norm
+	O_x = Dict{UInt64,ComplexF64}(old_Orb.elements)
+	#bitwise to flip the B spins
+	flipper :: UInt64 = UInt64(sum([1 << k for k in 0:2:L-2]))
+	for (gx, pf) in old_Orb.elements
+
+		#compute flipped states
+		hgx = xor(gx,flipper)
+		
+		#this is literally the same code. There should be a better way to do this
+		if hgx == old_Orb.representative
+			norm_x += pf*Z2A*old_Orb.norm
+		else
+			if !haskey(O_x,hgx)
+				O_x[hgx] = pf * Z2A
 				if hgx < cc_x
 					cc_x = hgx
 				end
@@ -229,6 +272,11 @@ end
 
 
 function apply_K(L :: Int, a :: Int,  K :: Int, x :: UInt64)
+	#L - size of the spin chain
+	#a - size of the unit cell
+	#K - translation symmetry sector
+	#x - the state to compute the orbit of
+	#returns - a Nullable(Orbit) with translation symmetry applied
 	G_k_size = div(L,a)
 	w :: ComplexF64 = exp(- (2 * pi * im * K)/G_k_size)
 	phase_factor :: ComplexF64 = 1.0
@@ -309,20 +357,46 @@ function get_orbit_function(L :: Int, unitCellSize :: Int, symmetries :: Dict{St
     #this is a placeholder for now
     if haskey(symmetries,"K")
     	if haskey(symmetries,"Z2B")
-    		a = unitCellSize
-    		Z2B = symmetries["Z2B"]
-    		K = symmetries["K"]
-    		return function (x)
-	    		k_orbit = apply_K(L,a,K,x)
-				orbit = !isnull(k_orbit) ? apply_Z2B(L, Z2B, get(k_orbit)) : k_orbit
-				return orbit
+    		if haskey(symmetries,"Z2A")
+    			a = unitCellSize
+	    		Z2A = symmetries["Z2A"]
+	    		Z2B = symmetries["Z2B"]
+	    		K = symmetries["K"]
+	    		println("Debug")
+	    		return function (x)
+		    		k_orbit = apply_K(L,a,K,x)
+					orbit_Z2B = !isnull(k_orbit) ? apply_Z2B(L, Z2B, get(k_orbit)) : k_orbit
+					orbit = !isnull(orbit_Z2B) ? apply_Z2A(L, Z2A, get(orbit_Z2B)) : orbit_Z2B
+					return orbit
+				end
+    		else
+	    		a = unitCellSize
+	    		Z2B = symmetries["Z2B"]
+	    		K = symmetries["K"]
+	    		return function (x)
+		    		k_orbit = apply_K(L,a,K,x)
+					orbit = !isnull(k_orbit) ? apply_Z2B(L, Z2B, get(k_orbit)) : k_orbit
+					return orbit
+				end
 			end
     	else
-    		a = unitCellSize
-    		K = symmetries["K"]
-    		return function (x)
-    			return apply_K(L,a,K,x)
-    		end
+            if haskey(symmetries,"Z2A")
+                println("Debug Z2A")
+                a = unitCellSize
+                Z2A = symmetries["Z2A"]
+                K = symmetries["K"]
+                return function (x)
+                    k_orbit = apply_K(L,a,K,x)
+                    orbit = !isnull(k_orbit) ? apply_Z2A(L, Z2A, get(k_orbit)) : k_orbit
+                    return orbit
+                end
+            else
+        		a = unitCellSize
+        		K = symmetries["K"]
+        		return function (x)
+        			return apply_K(L,a,K,x)
+        		end
+            end
     	end
     else
     	if haskey(symmetries,"Z2B")
