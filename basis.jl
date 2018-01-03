@@ -61,7 +61,7 @@ function make_full_basis(L :: Int)
     reps = Dict{UInt64,ConjClass}([UInt64(s) => ConjClass(s+1,1) for s in 0:(2^L)-1])
     #[x] -> (index of [x], Norm([x])^2)
     #offset index by 1 for julia being special
-    return Basis(basis, reps,[])
+    return Basis(basis, reps, Dict())
 end
 
 if testing2
@@ -188,103 +188,10 @@ end
 
 ############# Make orbits for the various symmetries ############
 
+###There are two levels of wrappers here right now
+#
+#The orbit maker calls functions which generate symmetries for individual orbits
 
-function make_orbit_K(L :: Int, a :: Int, K :: Int, x :: UInt64)
-	#L - number of sites
-	#a - unit cell size
-	#K - translation sector, from -L/a to L/a (but it wraps, so actually any integer is fine)
-	#x - the state we're finding the orbit of
-	#returns - an Nullable(Orbit) object with the states, associcated phase
-	#			factors, norm, and conjugacy class representative [x]
-	#			if we can terminate early, then we return Null and catch it
-
-	G_k_size = div(L,a)
-	w :: ComplexF64 = exp(- (2 * pi * im * K)/G_k_size)
-	phase_factor :: ComplexF64 = 1.0
-	norm_x :: ComplexF64 = 1.0
-	representative :: UInt64 = x
-
-	O_x = Dict{UInt64,ComplexF64}(x => phase_factor)
-	sizehint!(O_x,G_k_size)
-
-	c1 = UInt64(2^L-1)
-	for g = a : a : (L-1)
-		#compute the translated state with fast bitshifts
-
-		shift = x << g
-		gx :: UInt64 = (shift & c1) | ((shift & ~c1) >> L)
-		phase_factor *= w
-
-		if gx == x
-			norm_x += phase_factor
-		else 
-			if !haskey(O_x,gx) 
-				O_x[gx] = phase_factor
-				if gx < representative
-					representative = gx
-				end
-			end
-		end
-	end
-
-	if abs(norm_x) >= 10e-14
-		return Nullable(ORBIT(real(numchop(norm_x)), representative, O_x))
-		#alternative --- seem to be the same speed
-		#return Nullable(ORBIT(div(G_k_size,length(O_x)), representative, O_x))
-	else
-		return Nullable{ORBIT}()
-	end 
-end
-
-
-
-if testing4
-	println("Testing making translation  orbit")
-	preorb = make_orbit_K(8,1,1,UInt64(5))
-	if !isnull(preorb)
-		orb = get(preorb)
-		println(orb)
-		k = collect(keys(orb.elements))
-		display_states(k)
-	else
-		println("null orbit!")
-	end
-end
-
-
-
-
-function make_orbit_K_Z2B(L :: Int, a :: Int, K :: Int, Z2B :: Int, x :: UInt64)
-	#L - number of sites
-	#a - unit cell size #### MUST BE 2
-	#K - translation sector, from -L/a to L/a (but it wraps, so actually any integer is fine)
-	#Z2B - flip symmetry sector: in {-1, 1}
-	#x - the state we're finding the orbit of
-	#returns - an Nullable(Orbit) object with the states, associcated phase
-	#			factors, norm, and conjugacy class representative [x]
-	#			if we can terminate early, then we return Null and catch it
-
-	k_orbit = apply_K(L,a,K,x)
-	if !isnull(k_orbit)
-		return apply_Z2B(L, Z2B, get(k_orbit))
-	else
-		return k_orbit
-	end
-end
-
-
-if testing4
-	println("Testing making translation + Z2B orbit")
-	preorb = make_orbit_K_Z2B(8,1,1,1,UInt64(5))
-	if !isnull(preorb)
-		orb = get(preorb)
-		println(orb)
-		k = collect(keys(orb.elements))
-		display_states(k)
-	else
-		println("null orbit!")
-	end
-end
 
 
 function apply_Z2B(L :: Int, Z2 :: Int, old_Orb :: ORBIT)
@@ -390,7 +297,9 @@ function get_valid_state_function(L :: Int, unitCellSize :: Int, symmetries :: D
     end 
 end
 
-
+###########WARNING!!!!!!!!#######################
+#the logic for this function is not final
+#and doesn't check that your symmetries are cross-compatible
 function get_orbit_function(L :: Int, unitCellSize :: Int, symmetries :: Dict{String,Int})
     #L - length
     #unitCellSize - size of the unit cell
@@ -400,23 +309,46 @@ function get_orbit_function(L :: Int, unitCellSize :: Int, symmetries :: Dict{St
     #this is a placeholder for now
     if haskey(symmetries,"K")
     	if haskey(symmetries,"Z2B")
-    		return x -> make_orbit_K_Z2B(L, unitCellSize, symmetries["K"],symmetries["Z2B"],x)
-    	else	
-    		return x -> make_orbit_K(L, unitCellSize, symmetries["K"],x)
+    		a = unitCellSize
+    		Z2B = symmetries["Z2B"]
+    		K = symmetries["K"]
+    		return function (x)
+	    		k_orbit = apply_K(L,a,K,x)
+				orbit = !isnull(k_orbit) ? apply_Z2B(L, Z2B, get(k_orbit)) : k_orbit
+				return orbit
+			end
+    	else
+    		a = unitCellSize
+    		K = symmetries["K"]
+    		return function (x)
+    			return apply_K(L,a,K,x)
+    		end
     	end
+    else
+    	if haskey(symmetries,"Z2B")
+	    	Z2B = symmetries["Z2B"]
+	    	return function (x)
+	    		return apply_Z2B(L,Z2B,ORBIT(1.0,x,Dict(x => 1.0)))
+	    	end
+    	else
+    		#we have no symmetries, so give the trivial orbit
+		    #this is inefficient and I should get a better way to do this
+		    return function (x)
+		    	return Nullable(ORBIT(1.0,x,Dict(x => 1.0)))
+		    end
+		end
     end
-    error("No matching basis constructor for the symmetry:", symmetries)
 end
 
 
 
-function make_universal_basis(L :: Int, unitCellSize :: Int, symmetries :: Dict{String,Int})
+function make_universal_basis(L :: Int, unitCellSize :: Int, validity_symmetries :: Dict{String, Int}, symmetries :: Dict{String,Int})
     #L - length
     #unitCellSize - size of the unit cell
     #symmetries - Array of the symmetries, e.g [("Sz", 2),("K",-2)]
 
     #get a function to figure out which states are vald
-    is_valid_state = get_valid_state_function(L,unitCellSize,symmetries)
+    is_valid_state = get_valid_state_function(L,unitCellSize,validity_symmetries)
 
     #figure out which symmetry function we want to use
    	make_orbit = get_orbit_function(L,unitCellSize,symmetries)
@@ -459,7 +391,7 @@ if testing3
 
     L = 4
 
-    SzTrZ2basis = make_universal_basis(8,2,Dict("SzA" => 2,"K" => 0))
+    SzTrZ2basis = make_universal_basis(8,2,Dict("SzA" => 2), Dict("K" => 0))
     println(collect(Set(values(SzTrZ2basis.get_conj_class))))
     println("Basis size:", length(SzTrZ2basis.conj_classes))
     println(SzTrZ2basis.conj_classes)

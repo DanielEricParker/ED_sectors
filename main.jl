@@ -4,6 +4,7 @@
 ######################################################################
 
 using Nullables
+using IterativeEigensolvers
 
 #Kludgey way to get tests
 testing = false

@@ -63,7 +63,7 @@ include("main.jl")
 end
 
 
-L = 16
+L = 20
 
 Delta = 0.8
 alpha = 0.1
@@ -74,8 +74,8 @@ B_scale = 1.0
 
 
 
-@time SzTrbasis1 = make_Sz_Tr_flip_basis(L,4,0,-1)
-@time SzTrbasis1 = make_Sz_Tr_flip_basis(L,4,0,-1)
+@time SzTrbasis1 = make_Sz_Tr_flip_basis(L,3,3,1)
+@time SzTrbasis1 = make_Sz_Tr_flip_basis(L,3,3,1)
 
 println("Basis size:", length(SzTrbasis1.conj_classes))
 #println(collect(Set(values(SzTrbasis1.get_conj_class))))
@@ -83,8 +83,8 @@ println("Basis size:", length(SzTrbasis1.conj_classes))
 println(collect(Set(map(x -> x.norm,values(SzTrbasis1.conj_classes)))))
 
 
-@time SzTrbasis2 = make_universal_basis(L,2,Dict("SzA" => 4,"K" => 0, "Z2B" => -1))
-@time SzTrbasis2 = make_universal_basis(L,2,Dict("SzA" => 4,"K" => 0, "Z2B" => -1))
+@time SzTrbasis2 = make_universal_basis(L,2,Dict("SzA" => 3),Dict("K" => 3, "Z2B" => 1))
+@time SzTrbasis2 = make_universal_basis(L,2,Dict("SzA" => 3),Dict{String,Int64}("K" => 3, "Z2B" => 1))
 
 println("Basis size:", length(SzTrbasis2.conj_classes))
 #println(collect(Set(values(SzTrbasis2.get_conj_class))))
@@ -96,9 +96,11 @@ abstract_hamiltonian = make_XXZ_star_operators_new(L,Delta,alpha,g_tau,u_tau,B_s
 
 
 H1 = make_Hamiltonian(L,SzTrbasis1,abstract_hamiltonian)
-evs1 = eigfact(Matrix(H1))
-println(real(evs1.values[1:10]))
+println(typeof(H1))
+evs1 = eigs(H1;which=:SR, nev=10)
+println(real(evs1[1]))
 
 H2 = make_Hamiltonian(L,SzTrbasis2,abstract_hamiltonian)
-evs2 = eigfact(Matrix(H2))
-println(real(evs2.values[1:10]))
+println(ishermitian(H2))
+evs2 = eigs(H2;which=:SR, nev=10)
+println(real(evs2[1]))
