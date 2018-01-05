@@ -9,6 +9,122 @@
 #################################################
 
 
+
+#################### Data Structures ############################
+
+
+struct BasisVector
+    #type for linking a basis vector to it's conjugacy class
+    conj_class :: UInt64 ##conjugacy class for the element
+    phase_factor :: ComplexF64 ##phase factor to translate
+end
+Base.show(io::IO, bv::BasisVector) = print(io, "BV[",bin(bv.conj_class), ", ", bv.phase_factor, "]")
+
+
+
+struct ConjClass
+    #type for describing the conjugacy class of a basis element
+    index :: Int64 #index of this element in the Hamiltonian matrix
+    norm :: Int #norm^2 of the class so we can normalize it properly
+end
+Base.show(io::IO, cc::ConjClass) = print(io, "cc[ind:", cc.index,", norm:", cc.norm, "]")
+
+
+struct Basis
+    #type for storing a basis with various quantum numbers
+    get_conj_class :: Dict{UInt64,BasisVector} #gets basis vector for any state
+    conj_classes :: Dict{UInt64,ConjClass}    #gets index and norm of a conjugacy class
+    q_numbers :: Dict{String,Int} #list of quantum numbers for the state
+    #e.g. q_numbers = [("K",1),("Sz",3)]
+end
+
+
+struct ORBIT
+	#type for storing the orbit of a single element under a group action
+	norm :: Int
+	representative :: UInt64
+	elements :: Dict{UInt64,ComplexF64}
+end
+
+
+
+
+
+############################ Full constructors #################################
+#we want a separate constructor for the full basis, since it's so much simpler
+#returns a basis object, so it's cross-compatible
+
+
+function make_full_basis(L :: Int)
+    #L - length
+    #returns - the full basis of size 2^L, for testing
+    basis = Dict{UInt64,BasisVector}([UInt64(s) => BasisVector(UInt64(s),1.0) for s in 0:(2^L)-1])
+    #x - > ([x'], phase factor e^i theta(x,x'))
+    reps = Dict{UInt64,ConjClass}([UInt64(s) => ConjClass(s+1,1) for s in 0:(2^L)-1])
+    #[x] -> (index of [x], Norm([x])^2)
+    #offset index by 1 for julia being special
+    return Basis(basis, reps, Dict())
+end
+
+if testing2
+    println("Testing full basis")
+    basisFull = make_full_basis(4)
+    println(collect(values(basisFull.get_conj_class)))
+    display_states(collect(keys(basisFull.conj_classes)))
+    println(collect(values(basisFull.conj_classes)))
+end 
+
+
+##################### Symmetry operations  #########################
+
+function measure_N_up(s::UInt64, L::Int)
+    #s - state
+    #L - Length of the spin chain, must be even
+    #returns - the Sz sector of s, i.e. the number of spins up
+    a = Int(sum([(s & (1 << pl)) >> pl for pl = 0:L-1]))
+    return a
+end 
+
+if testing
+    #TEST measure_SZ
+    println("Testing N_up")
+    f = convert(UInt64, 0)
+    a = convert(UInt64, 1)
+    b = convert(UInt64, 3)
+    c = convert(UInt64, 7)
+    d = convert(UInt64, 15)
+    display_states([f,a,b,c,d])
+    println(map(s -> measure_N_up(s,4),[f,a,b,c,d]))
+end
+
+
+function measure_N_up_A(s :: UInt64, L :: Int)
+    return Int(sum([(s & (1 << pl)) >> pl for pl = 0:2:L-1]))
+end
+
+
+if testing
+    #TEST measure_SZ
+    println("Testing N_up_A")
+    f = convert(UInt64, 0)
+    a = convert(UInt64, 1)
+    b = convert(UInt64, 3)
+    c = convert(UInt64, 7)
+    d = convert(UInt64, 15)
+    display_states([f,a,b,c,d])
+    println(map(s -> measure_N_up_A(s,4),[f,a,b,c,d]))
+end
+
+
+
+function measure_N_up_B(s :: UInt64, L :: Int)
+    return Int(sum([(s & (1 << pl)) >> pl for pl = 1:2:L-1]))
+end
+
+
+
+################ Functions to apply symmetry ###############
+
 """Returns a function which computes translated versions of states
 and gives their phase factors.
 """
@@ -121,6 +237,38 @@ if testing5
 	println(bin(gx),", ", pf2)
 end
 
+
+
+
+############ Make a "universal" basis ##################
+
+
+####symmetries are broken into one of two types:
+# 1. symmetries that restrict which states are valid,
+# 	 such as magnetization sectors
+# 2. and "proper" symmetries with associated phase factors
+# The code filters the first out separately, since they're much faster
+
+
+function get_valid_state_function(L :: Int, unitCellSize :: Int, symmetries :: Dict{String,Int})
+    #L - length
+    #unitCellSize - size of the unit cell
+    #symmetries - Array of the symmetries, e.g [("Sz", 2),("K",-2)]
+    #returns - a function that determines if a state is valid
+
+    if haskey(symmetries,"Sz")
+		N_up = symmetries["Sz"]
+    	return x -> measure_N_up(x,L) == N_up
+    elseif haskey(symmetries,"SzA") && unitCellSize == 2
+    	N_up_A = symmetries["SzA"]
+    	return x -> measure_N_up_A(x,L) == N_up_A
+    elseif haskey(symmetries,"SzB") && unitCellSize == 2
+    	N_up_B = symmetries["SzB"]
+    	return x -> measure_N_up_B(x,L) == N_up_B
+   	else
+   		return x -> true
+    end 
+end
 
 
 """
@@ -343,7 +491,7 @@ function make_easy_basis(
 end
 
 
-if testing3
+if testing5
     println("Testing easy basis function")
 
     L = 4
