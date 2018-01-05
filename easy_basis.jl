@@ -134,6 +134,7 @@ function make_translation_function(L :: Int, a :: Int,  K :: Int)
 	#a - size of the unit cell
 	#K - translation symmetry sector
 
+
 	G_k_size = div(L,a)
 	omega :: ComplexF64 = exp(- (2 * pi * im * K)/G_k_size)
 	c1 = UInt64(2^L-1)
@@ -286,7 +287,6 @@ function make_easy_orbit_function(
 	has_translation :: Bool = false
 	symmetries_fcns = Vector()
 	G_size = 1
-
 
 	#translation is a special case
 	if haskey(symmetries,"K")
@@ -518,3 +518,5 @@ if testing5
 
     println(evs[:values])
 end
+
+
