@@ -18,3 +18,4 @@ testing4 = false
 include("utilities.jl")
 include("basis.jl")
 include("abstract_Hamiltonian.jl")
+include("easy_basis.jl")

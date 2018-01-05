@@ -1,3 +1,4 @@
+
 #####################################################################
 #Miscellaneous utilities for pretty printing, and little tasks
 
@@ -45,4 +46,35 @@ function export_data(data,name,parameters)
 
     #export as CSV
     writedlm(filename,data,", ")
+end
+
+
+
+########code for checking if two bases are the same
+
+function check_same_basis_debug(basis1,basis2)
+
+    for k in collect(keys(basis1.get_conj_class))
+        bv1 = basis1.get_conj_class[k]
+        bv2 = basis2.get_conj_class[k]
+        if (bv1.conj_class != bv2.conj_class) || (abs(bv1.phase_factor - bv2.phase_factor) >= 10e-5)
+            println(k,", ", (bv1.conj_class != bv2.conj_class),", ", abs(bv1.phase_factor - bv2.phase_factor) >= 10e-5)
+            println(bv1)
+            println(bv2)
+        end
+    end
+
+
+    println(length(basis1.conj_classes))
+    println(length(basis2.conj_classes))
+
+    for k in collect(keys(basis1.conj_classes))
+        cc1 = basis1.conj_classes[k]
+        cc2 = basis2.conj_classes[k]
+        if cc1.norm != cc2.norm
+            println("Bad cc:", k)
+            println(cc1)
+            println(cc2)
+        end
+    end
 end
