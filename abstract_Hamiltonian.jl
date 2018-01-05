@@ -378,7 +378,7 @@ function make_Hamiltonian(L :: Int, basis :: Basis, abstract_Ham :: HAMILTONIAN)
                 #check if upper diagonal
                 if cc_y.index >= cc_x.index
                     #compute the matrix element --- see Note
-                    h_xy = sqrt(cc_y.norm/cc_x.norm) * bv_y.phase_factor * y.factor
+                    h_xy = numchop(sqrt(cc_y.norm/cc_x.norm) * bv_y.phase_factor * y.factor)
                     H[cc_x.index,cc_y.index] += h_xy
 
                     #check if diagonal

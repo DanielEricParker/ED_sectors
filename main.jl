@@ -4,6 +4,7 @@
 ######################################################################
 
 using Nullables
+using Printf
 using IterativeEigensolvers
 
 #Kludgey way to get tests
@@ -11,6 +12,7 @@ testing = false
 testing2 = false
 testing3 = false
 testing4 = false
+testing5 = false
 
 ##################### Import everything #################
 

@@ -19,7 +19,7 @@ end
 ################### General little useful functions #############
 
 
-function numchop(x :: Complex{Float64}, epsilon = 10e-15)
+function numchop(x :: Complex{Float64}, epsilon = 10e-13)
     #x - complex number
     #returns - x with small real and imaginary parts removed
     a = real(x)
@@ -41,11 +41,16 @@ function export_data(data,name,parameters)
     
     fileName = name
     for (param,value) in parameters
-        fileName *= string("_", param, "_", value)
+        if typeof(value) == Int
+            fileName *= string("_", param, "_", value)
+        elseif typeof(value) == Float64 
+             fileName *= @sprintf "_%s_%.4f" param value
+        end
     end
+    fileName *= ".csv"
 
     #export as CSV
-    writedlm(filename,data,", ")
+    writedlm(fileName,data,", ")
 end
 
 
