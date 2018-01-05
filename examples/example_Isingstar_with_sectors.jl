@@ -3,8 +3,6 @@
 
 ######################################################################
 
-testing5 = false
-
 include("../main.jl")
 
 
@@ -60,11 +58,12 @@ println("Basis size: ", length(basis.conj_classes))
 
 println("Making the Hamiltonian matrix...")
 #make the Hamiltonian matrix
-H2 = make_Hamiltonian(L,basis,abstract_hamiltonian)
+H = make_Hamiltonian(L,basis,abstract_hamiltonian)
+
 
 println("Finding smallest eigenvalues...")
 #find the smallest 10 eigenvalues
-evs = eigs(H2;which=:SR, nev=30)
+evs = eigs(H; which=:SR, nev=30)
 
 #show the eigenvalues
 println(real(evs[1]))

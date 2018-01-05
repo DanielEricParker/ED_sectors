@@ -41,18 +41,18 @@ validity_symmetries = Dict("SzA" => 3)
 symmetries = Dict{String,Int64}("K" => 3, "Z2B" => 1)
 println("Making basis for symmetry sectors:\n\t", validity_symmetries,"\n\t",symmetries)
 #make a basis with symmetries --- this can be a bit slow
-SzTrbasis2 = make_universal_basis(L,a,validity_symmetries,symmetries)
+basis = make_universal_basis(L,a,validity_symmetries,symmetries)
 
 
-println("Basis size: ", length(SzTrbasis2.conj_classes))
+println("Basis size: ", length(basis.conj_classes))
 
 println("Making the Hamiltonian matrix...")
 #make the Hamiltonian matrix
-H2 = make_Hamiltonian(L,SzTrbasis2,abstract_hamiltonian)
+H = make_Hamiltonian(L,basis,abstract_hamiltonian)
 
 println("Finding smallest eigenvalues...")
 #find the smallest 10 eigenvalues
-evs2 = eigs(H2;which=:SR, nev=10)
+evs = eigs(H;which=:SR, nev=10)
 
 #show the eigenvalues
-println(real(evs2[1]))
+println(real(evs[1]))
