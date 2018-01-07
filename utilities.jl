@@ -19,18 +19,32 @@ end
 ################### General little useful functions #############
 
 
-function numchop(x :: Complex{Float64}, epsilon = 10e-13)
-    #x - complex number
-    #returns - x with small real and imaginary parts removed
-    a = real(x)
-    b = imag(x)
+# function numchop(x :: Complex{Float64}, epsilon = 10e-13)
+#     #x - complex number
+#     #returns - x with small real and imaginary parts removed
+#     a = real(x)
+#     b = imag(x)
 
-    w = abs(a) < epsilon ? 0 : a
-    z = abs(b) < epsilon ? 0 : b 
+#     w = abs(a) < epsilon ? 0 : a
+#     z = abs(b) < epsilon ? 0 : b 
 
-    return complex(w,z)
-end
+#     return complex(w,z)
+# end
 
+#borrowed from https://github.com/jlapeyre/ZChop.jl/blob/master/src/ZChop.jl
+
+const zeps = 1e-14
+
+zchop(x::T, eps=zeps) where T <: Real = abs(x) > convert(T,eps) ? x : zero(T)
+zchop(x::T, eps=zeps) where T<:Integer = abs(x) > eps ? x : zero(T)
+zchop(x::T, eps=zeps) where T<:Complex = complex(zchop(real(x),eps),zchop(imag(x),eps))
+zchop(a::T, eps=zeps) where T<:AbstractArray = (b = similar(a); for i in 1:length(a) b[i] = zchop(a[i],eps) end ; b)
+zchop!(a::T, eps=zeps)  where T<:AbstractArray = (for i in 1:length(a) a[i] = zchop(a[i],eps) end ; a)
+zchop(x::T,eps=zeps) where T<:Union{AbstractString,Char}=  x
+zchop(x::T,eps=zeps) where {T<:Irrational} = zchop(float(x),eps)
+zchop(x::Expr,eps=zeps) = Expr(x.head,zchop(x.args)...)
+zchop(x,eps) =  applicable(start,x) ? map((x)->zchop(x,eps),x) : x
+zchop(x) = applicable(start,x) ? map(zchop,x) : x
 
 ############### Exporting and File IO ######################
 

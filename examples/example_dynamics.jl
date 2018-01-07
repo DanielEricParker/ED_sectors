@@ -39,10 +39,10 @@ abstract_H = abstract_XXZ_Hamiltonian(L,Delta)
 #make the Hamiltonian matrix
 H = Matrix(make_Hamiltonian(L, basisFull, abstract_H))
 
-#full ED
-evs = eigfact(Matrix(H))
-println(typeof(evs.values))
-println(typeof(evs.vectors))
+# #full ED
+# evs = eigfact(Matrix(H))
+# println(typeof(evs.values))
+# println(typeof(evs.vectors))
 
 # #show the eigenvalues
 # println(evs.values[1:10])
@@ -63,7 +63,7 @@ println(norm(v2-v3)) #should be zero
 
 #test the 1pt correlation fcn 
 println("Testing the 1pt correlation fcn")
-psi = evolve.O[:,25] #the ground state, because why not
+psi = evolve.O[:,25] #the 25th state, because why not
 t = 10.0
 Op = OP("X",3)
 factor = 1.0

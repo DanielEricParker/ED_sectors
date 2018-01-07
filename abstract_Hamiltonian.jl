@@ -15,7 +15,7 @@
 
 struct VEC
     #type for storing factor * basis_state
-    factor :: Float64
+    factor :: Complex{Float64}
     state :: UInt64
 end
 Base.show(io::IO, v::VEC) = print(io, "s[",v.factor, " * ", bin(v.state), "]")
@@ -206,6 +206,30 @@ if testing
 end
 
 
+####not verified
+function apply_S_y(v :: VEC, i :: Int)
+    #v - Vector
+    #i - place to apply the operator 
+    flipped = xor(v.state, 1 << i)
+    factor = im*v.factor
+    if ((v.state >> i) & 1 == 1) #if v[i] == up
+        factor *= -1
+    end
+    return VEC(factor,flipped)
+end
+
+if testing
+    println("Testing S_y")
+    println(v)
+    println(apply_S_y(v,1))
+    println(w)
+    println(apply_S_y(w,1))
+    println(is_Null_VEC(apply_S_y(w,1)))
+end
+
+
+
+
 
 
 function apply_operators(v :: VEC, t :: TERM)
@@ -218,6 +242,8 @@ function apply_operators(v :: VEC, t :: TERM)
         else 
             if op.name == "X"
                 v = apply_S_x(v,op.site)
+            elseif op.name == "Y"
+                v = apply_S_y(v,op.site)
             elseif op.name == "Z"
                 v = apply_S_z(v,op.site)
             elseif op.name == "+"
@@ -378,7 +404,7 @@ function make_Hamiltonian(L :: Int, basis :: Basis, abstract_Ham :: HAMILTONIAN)
                 #check if upper diagonal
                 if cc_y.index >= cc_x.index
                     #compute the matrix element --- see Note
-                    h_xy = numchop(sqrt(cc_y.norm/cc_x.norm) * bv_y.phase_factor * y.factor)
+                    h_xy = zchop(sqrt(cc_y.norm/cc_x.norm) * bv_y.phase_factor * y.factor)
                     H[cc_x.index,cc_y.index] += h_xy
 
                     #check if diagonal
