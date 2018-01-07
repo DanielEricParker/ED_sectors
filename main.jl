@@ -21,4 +21,5 @@ testing5 = false
 include("utilities.jl")
 include("easy_basis.jl")
 include("abstract_Hamiltonian.jl")
+include("measurement.jl")
 include("dynamics.jl")

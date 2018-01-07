@@ -73,8 +73,8 @@ Function to compute n-point correlation functions for a state psi.
 """
 function correlation_npt(
 	psi :: Array{Complex{Float64}},
-	Ops :: Array{Ops}
-	factor :: Float64
+	Ops :: Array{OP},
+	factor :: Float64,
 	basis :: Basis
 	)
 
@@ -88,8 +88,8 @@ Function to compute n-point correlation functions for a density matrix rho.
 """
 function correlation_npt(
 	rho :: Array{Complex{Float64},2},
-	Ops :: Array{Ops}
-	factor :: Float64
+	Ops :: Array{OP},
+	factor :: Float64,
 	basis :: Basis
 	)
 
@@ -137,9 +137,9 @@ Numerically estimates where a transition is by detecting a gapless spectrum with
 * 'Ham': 1 parameter family of Hamiltonians
 """
 function transition_finder(
-	L1 :: Int
-	L2 :: Int
-	guess :: Float64
+	L1 :: Int,
+	L2 :: Int,
+	guess :: Float64,
 	Ham
 	)
 
