@@ -7,6 +7,7 @@ using Nullables
 using Printf
 using IterativeEigensolvers
 
+
 #Kludgey way to get tests
 testing = false
 testing2 = false
@@ -20,3 +21,4 @@ testing5 = false
 include("utilities.jl")
 include("easy_basis.jl")
 include("abstract_Hamiltonian.jl")
+include("dynamics.jl")

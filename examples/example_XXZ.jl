@@ -37,6 +37,8 @@ H = make_Hamiltonian(L, basisFull, abstract_H)
 
 #full ED
 evs = eigfact(Matrix(H))
+println(typeof(evs.values))
+println(typeof(evs.vectors))
 
 #show the eigenvalues
 println(evs.values[1:10])
