@@ -33,66 +33,6 @@ function evolver(H :: Matrix)
 end
 
 
-
-"""
-Function to return a correlation with no time evolution
-
-#Argument 
-* 'psi :: Array{ComplexF64}': the (normalized) state vector to measure
-* 'Op :: Array{Complex{Float64},2}': the operator to measure
-"""
-#thought: for a single-site operator, it's probably way 
-#better to compute the reduced density matrix
-
-function correlation(
-	psi :: Array{Complex{Float64}},
-	Op :: Matrix
-	)
-	len = length(psi)
-
-	#<psi|Op|psi>
-
-	v = BLAS.gemv('N',Op,psi) #N for no transpose
-	corr = BLAS.dotc(len,psi,1,v,1)
-
-	return corr
-end
-
-
-"""
-Function to return a correlation with no time evolution
-
-#Argument 
-* 'psi :: Array{ComplexF64}': the (normalized) state vector to measure
-* 'Op :: Array{Complex{Float64},2}': the operator to measure
-"""
-#thought: for a single-site operator, it's probably way 
-#better to compute the reduced density matrix
-
-function correlation1pt(
-	psi :: Array{Complex{Float64}},
-	Op :: OP,
-	factor :: Float64,
-	basis :: Basis
-	)
-#	this is dumb. perhaps Basis should contain L?
-	L = Int(round(log(2,length(psi))))
-	#println("L: ", L)
-
-	abstract_O = HAMILTONIAN("O", [term(factor,Op)])
-	Op_mat = make_Hamiltonian(L, basis, abstract_O)
-
-	len = length(psi)
-
-	#<psi|Op|psi>
-
-	v = Op_mat * psi #N for no transpose
-	corr = BLAS.dotc(len,psi,1,v,1)
-
-	return corr
-end
-
-
 """
 Function to return a correlation at a certain type.
 
