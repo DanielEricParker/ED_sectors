@@ -119,10 +119,26 @@ end
 """
 Computes the entanglement entropy S(l/L) for a state psi. 
 """
+#untested
 function entanglement_entropy(
 	psi :: Array{Complex{Float64}},
 	l :: Int
 	)
+
+	rho = reduce_density_matrix(phi,l)
+	evs = eigfact(rho)
+
+	S = Float64(0.0)
+	tol = 10e-16#hardcoded tolerance for numerical error
+
+	for p in evs.values
+		if abs(p) > tol
+			S += -1*p*log(p)
+		elseif p < -tol
+			error("Negative eigenvalue in the reduced density matrix!")
+		end
+	end
+	return S
 
 end
 

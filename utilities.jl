@@ -8,10 +8,14 @@
 
 #################### Display/pretty printing ##########################
 
-function display_states(s::Array{UInt64})
-    #x - state
-    #returns - nothing
-    #displays
+"""
+Pretty printing for spin-1/2 states.
+#Arguments
+* 'psi :: Array{UInt64}': states to display
+"""
+function display_states(
+	s::Array{UInt64}
+	)
     println(map(bin,s))
 end
 
@@ -48,10 +52,17 @@ zchop(x) = applicable(start,x) ? map(zchop,x) : x
 
 ############### Exporting and File IO ######################
 
-function export_data(data,name,parameters)
-    #data - data to export, an Array
-    #name - name/prefix for the data, e.g. "XXZ_eigenvalues"
-    #parameters - Array of Tuples (parameter, value), e.g. ("Delta", 0.6)
+"""
+Exports arrays to csv files, with parameters in the filename. Particularly useful when varying 1 or more parameters.
+#Arguments
+* 'data :: Array{Float64, N} where N': data to export, an Array
+* 'name :: String': name/prefix for the data, e.g. "XXZ_eigenvalues"
+* 'parameters :: Array{Tuple{String,Number}}': Array of Tuples (parameter, value), e.g. ("Delta", 0.6)
+"""
+function export_data(
+	data :: Array{Float64, N} where N,
+	name :: String,
+	parameters :: Array{Tuple{String,Number}})
     
     fileName = name
     for (param,value) in parameters
@@ -69,9 +80,14 @@ end
 
 
 
-########code for checking if two bases are the same
+"""
+Checks if two bases are the same. Useful for debugging.
+"""
 
-function check_same_basis_debug(basis1,basis2)
+function check_same_basis_debug(
+	basis1,
+	basis2
+	)
 
     for k in collect(keys(basis1.get_conj_class))
         bv1 = basis1.get_conj_class[k]

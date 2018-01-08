@@ -5,7 +5,6 @@
 
 include("../main.jl")
 
-
 ################### XXZ Hamiltonian example ##########################
 
 
