@@ -60,16 +60,21 @@ Exports arrays to csv files, with parameters in the filename. Particularly usefu
 * 'parameters :: Array{Tuple{String,Number}}': Array of Tuples (parameter, value), e.g. ("Delta", 0.6)
 """
 function export_data(
-	data :: Array{Float64, N} where N,
-	name :: String,
-	parameters :: Array{Tuple{String,Number}})
-    
+	# data :: Array{Float64, N} where N,
+	# name :: String,
+	# parameters :: Array{Tuple{String,Number}})
+    data, 
+    name,
+    parameters
+    )
     fileName = name
     for (param,value) in parameters
         if typeof(value) == Int
             fileName *= string("_", param, "_", value)
         elseif typeof(value) == Float64 
              fileName *= @sprintf "_%s_%.4f" param value
+        elseif typeof(value) == String
+            fileName *= string("_", param, "_", value)
         end
     end
     fileName *= ".csv"

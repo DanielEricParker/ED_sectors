@@ -216,6 +216,25 @@ function thermal_density_matrix(
 	return M
 end
 
+
+"""
+Function to compute the thermal density matrix
+"""
+####needs to be tested
+function thermal_density_matrix_infinite_temp(
+	evolve :: Evolver
+	)
+	
+	boltzmann = [1.0 for ev in evolve.evs]
+	Z = sum(boltzmann)
+	D = (1/Z) * Diagonal(boltzmann)
+
+	M = D * adjoint(evolve.O)
+	M = BLAS.gemm('N','N',evolve.O,M)
+	return M
+end
+
+
 """
 Function to compute a two-point function <psi|O(t)O(0)|psi>
 at a list of times {t1,t2,...}. Since we're doing the same
@@ -233,15 +252,15 @@ function timeseries(
 	# <psi| U D_m U^d Op_1 U D_p U^d Op_2|psi>
 	# (<psi| U) * D_m * (U^d Op_1 U) * D_p * (U^d Op_2 |psi>)
 
-	UdOp1U = BLAS.gemm('N','C',Op1,evolve.O)
-	UdOp1U = BLAS.gemm('N','N',evolve.O,UdOp1U)
+	UdOp1U = BLAS.gemm('N','N',Op1,evolve.O)
+	UdOp1U = BLAS.gemm('C','N',evolve.O,UdOp1U)
 
 	UdOp2psi =  BLAS.gemv('N',Op2,psi) 
-	UdOp2psi =  BLAS.gemv('N',evolve.O,UdOp2psi) 
+	UdOp2psi =  BLAS.gemv('C',evolve.O,UdOp2psi) 
 
 	Udpsi = BLAS.gemv('C',evolve.O,psi)
 
-	corr_t = Array{Complex{Float64}}(uninitialized, length(times))
+	corr_t = Array{Float64,2}(uninitialized, length(times),3)
 	for k in 1:length(times)
 		t = times[k]
 		expEigenvals_m = [exp(-im * t * ev) for ev in evolve.evs]
@@ -254,7 +273,10 @@ function timeseries(
 		v = BLAS.gemv('N',UdOp1U,v)
 		v = D_m * v
 
-		corr_t[k] = BLAS.dotc(len,Udpsi,1,v,1)
+		cor = BLAS.dotc(len,Udpsi,1,v,1)
+		corr_t[k,1] = t
+		corr_t[k,2] = real(cor)
+		corr_t[k,3] = imag(cor)
 	end
 
 	return corr_t
@@ -285,7 +307,7 @@ function timeseries(
 	UdOp2rhoU = BLAS.gemm('N','N',Op2,UdOp2rhoU)
 	UdOp2rhoU = BLAS.gemm('C','N',evolve.O,UdOp2rhoU)
 
-	corr_t = Array{Complex{Float64}}(uninitialized, length(times))
+	corr_t = Array{Float64}(uninitialized, length(times), 3)
 	for k in 1:length(times)
 		t = times[k]
 		expEigenvals_m = [exp(-im * t * ev) for ev in evolve.evs]
@@ -295,7 +317,11 @@ function timeseries(
 		D_p = Diagonal(expEigenvals_p)
 
 		M = D_p * UdOp2rhoU * D_m * UdOp1U
-		corr_t[k] = trace(M)#trace(M)
+		cor = trace(M)#trace(M)
+
+		corr_t[k,1] = t
+		corr_t[k,2] = real(cor)
+		corr_t[k,3] = imag(cor)
 	end
 
 	return corr_t

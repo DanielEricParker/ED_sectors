@@ -6,7 +6,7 @@
 # -reduced density matrix
 # -entanglement entropy
 # -transition finder based on eigenvalue crossings (perhaps put in utilities instead?)
-####################################################
+###################s#################################
 
 
 
@@ -139,7 +139,6 @@ function entanglement_entropy(
 		end
 	end
 	return S
-
 end
 
 

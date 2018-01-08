@@ -50,7 +50,7 @@ Base.show(io::IO,orb::ORBIT) = print(io,
 "\n\tnorm: ", orb.norm,
 "\n\trep: ", orb.representative,
 "\n\telements: \n",
-[ "$(bin(k)) => $(numchop(v))" for (k,v) in orb.elements],
+[ "$(bin(k)) => $(zchop(v))" for (k,v) in orb.elements],
 "]"
 	)
 
@@ -143,7 +143,7 @@ function make_translation_function(L :: Int, a :: Int,  K :: Int)
 
 
 	G_k_size = div(L,a)
-	omega :: ComplexF64 = numchop(exp(- (2 * pi * im * K)/G_k_size))
+	omega :: ComplexF64 = zchop(exp(- (2 * pi * im * K)/G_k_size))
 	c1 = UInt64(2^L-1)
 
 	return 	function (x :: UInt64, pf :: ComplexF64)
@@ -493,7 +493,7 @@ function make_easy_basis(
   				pf_rep = O_x[conj_class_x]
 				for (gx, pf_x) in O_x
 					#if is_valid_state(gx)
-					basis[gx] = BasisVector(conj_class_x, numchop(pf_rep/pf_x))
+					basis[gx] = BasisVector(conj_class_x, zchop(pf_rep/pf_x))
 					#end
 				end
 
