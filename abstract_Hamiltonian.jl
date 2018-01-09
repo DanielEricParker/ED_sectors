@@ -119,7 +119,20 @@ if testing2
     println(testHam)
 end
 
-
+"""
+Checks that all the operators in the Hamiltonian are within bounds.
+"""
+function check_Hamiltonian(H :: HAMILTONIAN, L :: Int)
+    # println("Checking Hamiltonian...")
+    for term in H.terms
+        for op in term.operator
+            if op.site < 0 || op.site >= L
+                error("Out of bounds! Term:", term)
+            end
+        end
+    end
+    return true
+end
 
 
 
@@ -384,6 +397,9 @@ function make_Hamiltonian(L :: Int, basis :: Basis, abstract_Ham :: HAMILTONIAN)
     #reps - represenatives of conjugacy classes Dict
     #opsList - list of operators we want to add to the Hamiltonian
 
+    #make sure that everything is in-bounds
+    check_Hamiltonian(abstract_Ham,L)
+
     dim = length(basis.conj_classes)
     H = spzeros(ComplexF64,dim,dim)
 
@@ -420,8 +436,8 @@ function make_Hamiltonian(L :: Int, basis :: Basis, abstract_Ham :: HAMILTONIAN)
     end
     return H
     #Making it Hermitian makes diagonalization ridiculously slow for unclear reasons right now
-    #maybe a bug?
-    #return Hermitian(H,:U)
+    # #maybe a bug?
+    # return Hermitian(H,:U)
 end 
 
 if testing2
