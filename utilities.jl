@@ -65,7 +65,8 @@ function export_data(
 	# parameters :: Array{Tuple{String,Number}})
     data, 
     name,
-    parameters
+    parameters;
+    verbose = false
     )
     fileName = name
     for (param,value) in parameters
@@ -79,6 +80,9 @@ function export_data(
     end
     fileName *= ".csv"
 
+    if verbose
+        println("Exporting data to '$(fileName)'.")
+    end
     #export as CSV
     writedlm(fileName,data,", ")
 end

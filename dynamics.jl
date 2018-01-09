@@ -201,7 +201,6 @@ end
 """
 Function to compute the thermal density matrix
 """
-####needs to be tested
 function thermal_density_matrix(
 	evolve :: Evolver,
 	beta :: Float64
@@ -216,22 +215,18 @@ function thermal_density_matrix(
 	return M
 end
 
-
-"""
-Function to compute the thermal density matrix
-"""
-####needs to be tested
-function thermal_density_matrix_infinite_temp(
-	evolve :: Evolver
+#for infinite temeperature, i.e. beta = 0
+function thermal_density_matrix(
+	evolve :: Evolver,
+	beta :: Int
 	)
-	
-	boltzmann = [1.0 for ev in evolve.evs]
-	Z = sum(boltzmann)
-	D = (1/Z) * Diagonal(boltzmann)
-
-	M = D * adjoint(evolve.O)
-	M = BLAS.gemm('N','N',evolve.O,M)
-	return M
+	if(beta != 0)
+		return thermal_density_matrix(evolve,Float64(beta))
+	end
+	Z =length(evolve.evs)
+	a = 1/Z
+	D = Matrix{ComplexF64}(Diagonal([a for i in 1:Z]))
+	return D
 end
 
 
@@ -245,7 +240,8 @@ function timeseries(
 	evolve :: Evolver,
 	times :: Array{Float64},
 	Op1 :: Array{Complex{Float64},2},
-	Op2:: Array{Complex{Float64},2}
+	Op2:: Array{Complex{Float64},2};
+	show_times :: Bool = false
 )
 	len = length(psi)
 	# <psi| Op_1(t) Op_2(0)|psi>
@@ -291,7 +287,8 @@ function timeseries(
 	evolve :: Evolver,
 	times :: Array{Float64},
 	Op1 :: Array{Complex{Float64},2},
-	Op2:: Array{Complex{Float64},2}
+	Op2:: Array{Complex{Float64},2};
+	show_times :: Bool = false
 )
 
 	#we want 
@@ -310,7 +307,9 @@ function timeseries(
 	corr_t = Array{Float64}(uninitialized, length(times), 3)
 	for k in 1:length(times)
 		t = times[k]
-		println(t)
+		if show_times
+			println("Time: ", t)
+		end
 		expEigenvals_m = [exp(-im * t * ev) for ev in evolve.evs]
 		expEigenvals_p = [exp(im * t * ev) for ev in evolve.evs]
 
