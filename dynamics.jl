@@ -310,6 +310,7 @@ function timeseries(
 	corr_t = Array{Float64}(uninitialized, length(times), 3)
 	for k in 1:length(times)
 		t = times[k]
+		println(t)
 		expEigenvals_m = [exp(-im * t * ev) for ev in evolve.evs]
 		expEigenvals_p = [exp(im * t * ev) for ev in evolve.evs]
 
