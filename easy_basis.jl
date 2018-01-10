@@ -461,7 +461,7 @@ function make_easy_basis(
 	
 
     #get a function to figure out which states are vald
-    is_valid_state = get_valid_state_function(L,unitCellSize,validity_symmetries)
+    is_valid_state = get_valid_state_function(L,unitCellSize,validity_syms)
 
     #figure out which symmetry function we want to use
    	make_orbit = make_easy_orbit_function(L,unitCellSize,symmetries)
