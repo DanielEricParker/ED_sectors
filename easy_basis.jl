@@ -245,6 +245,64 @@ if testing5
 end
 
 
+"""Returns a function which computes a version of a state
+	inverted around the middle. Works for any unit cell size.
+"""
+function make_Inversion_function(
+	L :: Int,
+	Inv :: Int,
+	a :: Int
+	)
+	
+	cell = UInt64((2^a) -1)
+
+	#this seems fairly inefficient
+	if Inv == 1
+		return 	function (x :: UInt64, pf :: ComplexF64)
+					gx = UInt64(0)
+					shift_back = (L-a)
+					for k in 0:a:L-1
+						k_cell = cell << k #kth cell mask
+						x2 = x & k_cell	 	#extract kth cell only
+						x3 = x2 << shift_back #push it back
+						shift_back -= 2a	#update shift
+						gx = gx | x3		#update vector
+						#println(k, ", x2: ", x2, " x3: ", x3, " gx: ", gx)
+					end
+					return (gx,pf)
+				end
+	else 
+		return 	function (x :: UInt64, pf :: ComplexF64)
+					gx = UInt64(0)
+					shift_back = (L-a)
+					for k in 0:a:L-1
+						k_cell = cell << k #kth cell mask
+						x2 = x & k_cell	 	#extract kth cell only
+						x3 = x2 << shift_back #push it back
+						shift_back -= 2a	#update shift
+						gx = gx | x3		#update vector
+						#println(k, ", x2: ", x2, " x3: ", x3, " gx: ", gx)
+					end
+					pf *= -1
+					return (gx,pf)
+				end
+	end
+end
+
+if testing5
+	println("\nTesting 'make_Inversion_function'. ")
+	inv_fcn = make_Inversion_function(10,1,2)
+	inv_fcn_2 = make_Inversion_function(10,-1,2)
+	x = UInt64(137)
+	pf = Complex(1.0)
+	println(bin(x),", ", pf)
+	(gx,pf2) = inv_fcn(x,pf)
+	println(bin(gx),", ", pf2)
+	(gx,pf2) = inv_fcn_2(x,pf)
+	println(bin(gx),", ", pf2)
+
+end
+
 
 
 
@@ -312,6 +370,9 @@ function make_easy_orbit_function(
 				sub_gp_size = 2
 			elseif name == "Z2B"
 				sym_fcn = make_Z2B_function(L,sector)
+				sub_gp_size = 2
+			elseif name == "Inv"
+				sym_fcn = make_Inversion_function(L,sector,unitCellSize)
 				sub_gp_size = 2
 			end
 			G_size *= sub_gp_size
