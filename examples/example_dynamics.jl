@@ -62,9 +62,11 @@ println(norm(v2-v3)) #should be zero
 
 
 #test the 1pt correlation fcn 
-println("Testing the 1pt correlation fcn")
+#println("Testing the 1pt correlation fcn")
 psi = evolve.O[:,25] #the 25th state, because why not
+E_psi = evolve.evs[25]
 t = 10.0
+ts = [Float64(t) for t in 1:20]
 Op = OP("X",3)
 factor = 1.0
 
@@ -72,9 +74,10 @@ println("Finding 1pt function from abstract Op")
 corr1pt = correlation1pt(psi, evolve, t, Op, factor, basisFull)
 println(corr1pt)
 
-println("Finding 1pt function from matrix Op")
+#println("Finding 1pt function from matrix Op")
 abstract_O = HAMILTONIAN("O", [term(factor,OP("Z",3),OP("Z",4))])
-Op_mat = Matrix(make_Hamiltonian(L, basisFull, abstract_O))
+Op_mat_sp = make_Hamiltonian(L, basisFull, abstract_O)
+Op_mat = Matrix(Op_mat_sp)
 
 corr = correlation(psi, evolve, t, Op_mat)
 println(corr)
@@ -106,3 +109,21 @@ println(timesseries_rho)
 @btime timeseries(rho,evolve,ts,Op_mat,Op_mat) #obviously this is way faster
 #it's about a factor 3 for 10 times
 @btime timeseries(psi,evolve,ts,Op_mat,Op_mat) #and this is waaaay faster yet
+
+
+
+#####second generation functions, which should be way more efficient
+
+#old version
+println("Finding 2pt timeseries for psi")
+timesseries_psi = timeseries(psi,evolve,ts,Op_mat,Op_mat)
+println(timesseries_psi)
+#@btime timeseries(psi,evolve,ts,Op_mat,Op_mat)
+
+#old version
+println("Finding 2pt timeseries for psi --- faster?")
+timesseries_psi_2 = timeseries2(psi,E_psi,evolve,ts,Op_mat_sp)
+println(timesseries_psi_2)
+#@btime timeseries2(psi,E_psi,evolve,ts,Op_mat_sp)
+
+println("Are they approximately equal? ", isapprox(timesseries_psi,timesseries_psi_2))

@@ -241,7 +241,7 @@ function timeseries(
 	times :: Array{Float64},
 	Op1 :: Array{Complex{Float64},2},
 	Op2:: Array{Complex{Float64},2};
-	show_times :: Bool = false
+	verbose :: Bool = false
 )
 	len = length(psi)
 	# <psi| Op_1(t) Op_2(0)|psi>
@@ -259,6 +259,9 @@ function timeseries(
 	corr_t = Array{Float64,2}(uninitialized, length(times),3)
 	for k in 1:length(times)
 		t = times[k]
+		if verbose
+			println("Time $(k)/$(length(times))")
+		end
 		expEigenvals_m = [exp(-im * t * ev) for ev in evolve.evs]
 		expEigenvals_p = [exp(im * t * ev) for ev in evolve.evs]
 
@@ -288,7 +291,7 @@ function timeseries(
 	times :: Array{Float64},
 	Op1 :: Array{Complex{Float64},2},
 	Op2:: Array{Complex{Float64},2};
-	show_times :: Bool = false
+	verbose :: Bool = false
 )
 
 	#we want 
@@ -307,8 +310,8 @@ function timeseries(
 	corr_t = Array{Float64}(uninitialized, length(times), 3)
 	for k in 1:length(times)
 		t = times[k]
-		if show_times
-			println("Time: ", t)
+		if verbose
+			println("Time $(k)/$(length(times))")
 		end
 		expEigenvals_m = [exp(-im * t * ev) for ev in evolve.evs]
 		expEigenvals_p = [exp(im * t * ev) for ev in evolve.evs]
@@ -326,4 +329,47 @@ function timeseries(
 
 	return corr_t
 
+end
+
+
+"""
+Function to compute a two-point function <psi|O(t)O(0)|psi>
+for an *eigenstate* |psi>
+at a list of times {t1,t2,...}. Since we're doing the same
+operator at each time, we can optimize this a bit.
+"""
+#turns out there should be a much better way to do this with many fewer
+#matrix multiplications
+function timeseries2(
+	psi :: Array{Complex{Float64}}, ###must be an eigenstate
+	E_psi :: Float64,
+	evolve :: Evolver,
+	times :: Array{Float64},
+	Op, #can be sparse
+	verbose :: Bool = false
+)
+	len = length(psi)
+
+	Oppsi = Op * psi
+
+	O_sr = BLAS.gemv('C',evolve.O,Oppsi)
+	O_sr_abs = Array{Complex{Float64}}([abs2(x) for x in O_sr])
+
+
+	corr_t = Array{Float64,2}(uninitialized, length(times),3)
+	for k in 1:length(times)
+		t = times[k]
+		if verbose
+			println("Time $(k)/$(length(times))")
+		end
+		exp_Es = exp(-im*t*E_psi)
+		expEigenvals = [exp(im * t * ev) *exp_Es for ev in evolve.evs]
+
+		cor = BLAS.dotu(len,O_sr_abs,1,expEigenvals,1)
+		corr_t[k,1] = t
+		corr_t[k,2] = real(cor)
+		corr_t[k,3] = imag(cor)
+	end
+
+	return corr_t
 end
