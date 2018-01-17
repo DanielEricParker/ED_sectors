@@ -110,8 +110,24 @@ function reduce_density_matrix(
 	phi :: Array{Complex{Float64}},
 	l :: Int
 	)
+	new_dim = 2^l
+	phi_reshape = reshape(phi,div(length(phi),new_dim),new_dim)
 
+	rho_reduced = [
+			#come back and think if this should actually always be real
+			real(dot(phi_reshape[:,i],phi_reshape[:,j]))
+		for i in 1:new_dim, j in 1:new_dim]
 
+	for i in 1:new_dim, j in 1:new_dim 
+		if isnan(rho_reduced[i,j])
+
+			println(phi_reshape[:,i])
+			println(phi_reshape[:,j])
+			println(dot(phi_reshape[:,i],phi_reshape[:,j]))
+			error("NaN at (i,j) = (", i, ", ", j,")")
+		end
+	end
+	return Hermitian(rho_reduced)
 end
 
 
@@ -122,19 +138,25 @@ Computes the entanglement entropy S(l/L) for a state psi.
 #untested
 function entanglement_entropy(
 	psi :: Array{Complex{Float64}},
-	l :: Int
+	l :: Int;
+	epsilon = 10e-15#hardcoded tolerance for numerical error
 	)
 
-	rho = reduce_density_matrix(phi,l)
+	rho = reduce_density_matrix(psi,l)
+	#println(size(rho))
+	#println(rho)
 	evs = eigfact(rho)
 
-	S = Float64(0.0)
-	tol = 10e-16#hardcoded tolerance for numerical error
+	#println(real(evs.values))
 
-	for p in evs.values
-		if abs(p) > tol
-			S += -1*p*log(p)
-		elseif p < -tol
+	S = Float64(0.0)
+	tol = 10e-14#hardcoded tolerance for numerical error
+
+	for p in real(evs.values)
+		if p > epsilon
+			S += -p*log(p)
+			#println(S)
+		elseif p < -epsilon
 			error("Negative eigenvalue in the reduced density matrix!")
 		end
 	end
