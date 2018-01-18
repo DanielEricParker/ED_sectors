@@ -65,7 +65,10 @@ Base.show(io::IO, t::TERM) = print(io,  t.prefactor, "*", t.operator)
 function term(prefactor :: Float64, ops :: OP ...)
 	#alternative constructor for TERM type
 	#uses variable arguments for improved readability
-	return TERM(prefactor, collect(ops))
+    ops_array = collect(ops)
+    #sort to site-order, important if we're wrapping around
+    sort!(ops_array, by = (op) -> op.site)
+	return TERM(prefactor, ops_array)
 end
 
 if testing2
@@ -447,3 +450,96 @@ if testing2
     H2 = make_Hamiltonian(4,basisFull,abstract_hamiltonian)
     println(H1 == H2)
 end
+
+
+
+
+
+pauli_1 = sparse([1,2],[1,2],[1.0,1.0])
+pauli_x = sparse([1,2],[2,1],[1.0,1.0])
+pauli_y = sparse([1,2],[2,1],[1.0*im,-1.0*im])
+pauli_z = sparse([1,2],[1,2],[1.0,-1.0])
+
+
+
+"""
+
+"""
+function get_pauli_matrix(name :: String)
+        if name == "X"
+            return pauli_x
+        elseif name == "Y"
+            return pauli_y
+        elseif name == "Z"
+            return pauli_z
+        else 
+            error("Unsupported operator name: ",op.name)
+        end
+end
+
+
+
+
+"""
+Quickly makes a Hamiltonian for the full basis with no symmetry constraints. 
+
+#Argument 
+* 'L :: Int': the length of the spin chain
+* 'abstract_Ham :: HAMILTONIAN': the abstract operator to implement
+"""
+function full_Hamiltonian(L :: Int, abstract_Ham :: HAMILTONIAN)
+
+    #make sure that everything is in-bounds
+    check_Hamiltonian(abstract_Ham,L)
+
+    dim = 2^L
+    H = spzeros(ComplexF64,dim,dim)
+
+    #loop over terms in the Hamiltonian
+    for term in abstract_Ham.terms
+
+        #start with the Identity
+        term_matrix = sparse(I,1,1)
+        last_pos = -1
+
+        #loop over terms, i.e. 2.0 XZX -> [X,Z,X]
+        for op in term.operator
+            
+            pos = op.site
+            #how many ones in the middle?
+            pos_shift = pos-last_pos-1
+            #get the pauli matrix
+            site_mat = get_pauli_matrix(op.name)
+
+            #tensor product
+            if pos_shift == 0
+                term_matrix = kron(term_matrix,site_mat)
+            else 
+                shift_size = 2^pos_shift
+                term_matrix = kron(term_matrix,kron(sparse(I, shift_size, shift_size),site_mat))
+            end
+            last_pos = pos
+        end
+
+        #fill out matrix to 2^L x 2^L
+        pos_shift = L - 1 - last_pos
+        if pos_shift > 0
+            shift_size = 2^pos_shift
+            term_matrix = kron(term_matrix, sparse(I,shift_size,shift_size))
+        end
+        
+        #multiply by the prefactor
+        term_matrix *= term.prefactor
+
+        #add the term
+        H += term_matrix
+    end
+
+    return H
+end
+
+
+
+
+
+
