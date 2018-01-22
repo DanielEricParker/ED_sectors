@@ -163,6 +163,29 @@ function entanglement_entropy(
 	return S
 end
 
+"""Computes EE for cuts at every site for a wavefunction.
+#Argument 
+* 'L :: Int': the number of sites
+* 'psi :: Array{Complex{Float64},1}': the wavefunction
+"""
+function measure_EE(
+	L :: Int,
+	psi :: Array{Complex{Float64},1})
+	EE = Array{Float64,2}(uninitialized,L+1,2)
+
+	for k in 1:(floor(Int,L/2)+1)
+		ee_k = entanglement_entropy(psi,k;epsilon = 10e-15)
+		EE[k,1] = k
+		EE[k,2] = ee_k
+		#this might overlap on the middle, but that's fine, it just overwrites the float
+		EE[L+2-k,1] = L+2-k
+		EE[L+2-k,2] = ee_k
+	end
+
+	return EE
+end
+
+
 
 
 """

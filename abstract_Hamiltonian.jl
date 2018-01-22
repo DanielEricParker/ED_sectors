@@ -104,9 +104,15 @@ end
 function Base.:+(H :: HAMILTONIAN, t :: TERM)
 	#gives a way to add terms to Hamiltonians
 	#usage: h += term
-	terms = H.terms
-	push!(terms,t)
-	HAMILTONIAN(H.name,terms)
+
+    #Kludgey, maybe move to a separate function?
+    if abs(t.prefactor) >= 10e-12
+    	terms = H.terms
+    	push!(terms,t)
+    	return HAMILTONIAN(H.name,terms)
+    else
+        return H
+    end
 end
 
 if testing2
@@ -135,6 +141,91 @@ function check_Hamiltonian(H :: HAMILTONIAN, L :: Int)
         end
     end
     return true
+end
+
+
+############# more complicated constructor for abstract Hamiltonians ############
+
+
+
+
+
+"""
+Tries to make constructing a Hamiltonian as natural as possible,
+and as close as possible to how it's done analytically.
+
+e.g H = sum_i - X_i - Z_i Z_i+1
+
+is
+
+H = Ham(
+	(-1,"X"),
+	(-1,"ZZ")
+)
+
+but for something more complicated like
+
+H = - sum_{i even} X_i + Z_{i-1} X_i Z_i
+
+
+H = Ham(
+	(-1,"X",2,1), #space by 1, start on site 1
+	(-1,"ZXZ",2,0) #spaceby 1, start on site 0
+)
+
+"""
+function make_abstract_Hamiltonian(
+	L :: Int,
+	pbc :: Bool,
+	terms
+	...
+	)
+
+	# #periodic boundary conditions
+	# pbc = true
+
+	#turn the terms in to abstract terms
+	#abstract terms are tuple (prefactor, [Op names])
+	allowed_operator_names = ['X','Y','Z','+','-']
+	abstractTerms = Array{Tuple{Float64,Array{String},Int,Int}}(uninitialized,length(terms))
+
+	#parse the operator names and check that they're real operators
+	for (i,term) in enumerate(terms)
+		termPrefactor = Float64(term[1])
+
+		for op_name in term[2]
+			if !in(op_name, allowed_operator_names)
+				error("Unsupported operator name \"", op_name, "\" in term, ", term)
+			end
+		end
+		termNames = [string(ch) for ch in term[2]]
+
+		termSpace = length(term) == 2 ? 1 : term[3]
+		termStart = length(term) == 2 ? 0 : term[4] #we zero count for sites
+
+		abstractTerms[i] = (termPrefactor, termNames, termSpace, termStart)
+	end
+
+	realTerms = []
+	#for each term, work on what sites it's on
+	for at in abstractTerms
+
+		#what site should we end at?
+		termEnd = pbc ? L-1 : L - length(at[2])
+
+		# for i in start: space : end
+		for i in at[4] : at[3] : termEnd
+			#make the actual operators
+			operators = [OP(op_name,(i+j-1)%L) for (j,op_name) in enumerate(at[2])]
+			realTerm = TERM(at[1], operators)			
+			push!(realTerms,realTerm)
+		end 
+	end
+
+	H = HAMILTONIAN("",realTerms)
+
+	return H
+
 end
 
 
@@ -463,7 +554,7 @@ pauli_z = sparse([1,2],[1,2],[1.0,-1.0])
 
 
 """
-
+Returns the correct Pauli matrix for the name
 """
 function get_pauli_matrix(name :: String)
         if name == "X"
@@ -504,7 +595,7 @@ function full_Hamiltonian(L :: Int, abstract_Ham :: HAMILTONIAN)
 
         #loop over terms, i.e. 2.0 XZX -> [X,Z,X]
         for op in term.operator
-            
+
             pos = op.site
             #how many ones in the middle?
             pos_shift = pos-last_pos-1
