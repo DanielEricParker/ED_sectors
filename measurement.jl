@@ -54,7 +54,7 @@ function correlation1pt(
 	L = Int(round(log(2,length(psi))))
 	len = length(psi)
 
-	abstract_O = HAMILTONIAN("O", [term(factor,Op)])
+	abstract_O = HAMILTONIAN(L,"O", [term(factor,Op)])
 	Op_mat = make_Hamiltonian(L, basis, abstract_O)
 
 

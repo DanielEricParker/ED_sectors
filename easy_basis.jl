@@ -32,6 +32,7 @@ Base.show(io::IO, cc::ConjClass) = print(io, "cc[ind:", cc.index,", norm:", cc.n
 
 struct Basis
     #type for storing a basis with various quantum numbers
+    L :: Int64 #number of sites
     get_conj_class :: Dict{UInt64,BasisVector} #gets basis vector for any state
     conj_classes :: Dict{UInt64,ConjClass}    #gets index and norm of a conjugacy class
     q_numbers :: Dict{String,Int} #list of quantum numbers for the state
@@ -65,13 +66,24 @@ Base.show(io::IO,orb::ORBIT) = print(io,
 function make_full_basis(L :: Int)
     #L - length
     #returns - the full basis of size 2^L, for testing
-    basis = Dict{UInt64,BasisVector}([UInt64(s) => BasisVector(UInt64(s),1.0) for s in 0:(2^L)-1])
+    basis = Dict{UInt64,BasisVector}()
     #x - > ([x'], phase factor e^i theta(x,x'))
-    reps = Dict{UInt64,ConjClass}([UInt64(s) => ConjClass(s+1,1) for s in 0:(2^L)-1])
+    reps = Dict{UInt64,ConjClass}()
     #[x] -> (index of [x], Norm([x])^2)
     #offset index by 1 for julia being special
-    return Basis(basis, reps, Dict())
+    return Basis(L,basis, reps, Dict())
 end
+
+# function make_full_basis(L :: Int)
+#     #L - length
+#     #returns - the full basis of size 2^L, for testing
+#     basis = Dict{UInt64,BasisVector}([UInt64(s) => BasisVector(UInt64(s),1.0) for s in 0:(2^L)-1])
+#     #x - > ([x'], phase factor e^i theta(x,x'))
+#     reps = Dict{UInt64,ConjClass}([UInt64(s) => ConjClass(s+1,1) for s in 0:(2^L)-1])
+#     #[x] -> (index of [x], Norm([x])^2)
+#     #offset index by 1 for julia being special
+#     return Basis(L,basis, reps, Dict())
+# end
 
 if testing2
     println("Testing full basis")
@@ -512,14 +524,30 @@ end
 """
 Produces a basis from its symmetry information.
 """
-function make_easy_basis(
-	L :: Int, 						#number of lattice sites
-	unitCellSize :: Int, 			#self-expanatory
-	validity_syms :: Dict{String,Int},#symmetries that restrict which states are valid
-	#name => sector, e.g. translation sector 3 is "K" => 3
-	symmetries :: Dict{String,Int}, #all other symmetires
+function make_basis(
+	L :: Int;  						#number of lattice sites
+	unitCellSize :: Int = 1, 			#self-expanatory
+	# validity_syms :: Dict{String,Int} =  Dict{String,Int}(),#symmetries that restrict which states are valid
+	# #name => sector, e.g. translation sector 3 is "K" => 3
+	syms :: Dict{String,Int} =  Dict{String,Int}()
 	)
 	
+	#if we're not using symmetries, then we don't have to compute anything
+	#but let's put in placeholders anyway
+	if (length(syms) == 0)
+		return 	Basis(L, 
+			Dict{UInt64,BasisVector}(),
+			Dict{UInt64,ConjClass}(),
+			Dict{String,Int}())
+	end
+
+	#separte out the symemtries that simply restrict the Hilbert space
+	#hardcoded names for now, as only a few are implemented
+	validity_syms_names = ["Sz","SzA","SzB"]
+	symmetries_names = ["K","Z2A","Z2B","Inv"]
+
+	validity_syms = filter( kv -> in(kv[1],validity_syms_names), syms)
+	symmetries = filter( kv -> in(kv[1],symmetries_names), syms)
 
     #get a function to figure out which states are vald
     is_valid_state = get_valid_state_function(L,unitCellSize,validity_syms)
@@ -566,7 +594,7 @@ function make_easy_basis(
             end
 	    end
     end
-	return Basis(basis, reps, symmetries)
+	return Basis(L,basis, reps, symmetries)
 end
 
 

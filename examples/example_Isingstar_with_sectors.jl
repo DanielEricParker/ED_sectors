@@ -16,16 +16,17 @@ include("../main.jl")
  	U_tau :: Float64,
  	gamma :: Float64,
  	B_scale :: Float64)
-	H = HAMILTONIAN("Ising_star",[])
-    for i in 0:2:L-1
-		H += term(-g_sigma, 			OP("Z", i), 	OP("Z", (i+2) % L))
-		H += term(-U_sigma, 			OP("X", i), 	OP("X", (i+2) % L))
-	 	H += term(-1.0,			 		OP("X", i))
-	 	H += term(-1.0*B_scale, 		OP("X", i+1))
-		H += term(-g_tau*B_scale, 		OP("Z", i+1), 	OP("Z", (i+3) % L))
-		H += term(-U_tau*B_scale, 		OP("X", i+1), 	OP("X", (i+3) % L))
-		H += term(-gamma, 				OP("X", i), 	OP("X", (i+1) % L))
-    end
+	H = ABSTRACT_OP(L,"Ising_star",true)
+	H += TERMS(-g_sigma,"ZIZ",0,2)
+	H += TERMS(-U_sigma,"XIX",0,2)
+	H += TERMS(-1.0, "X", 0, 2)
+
+	H += TERMS(-B_scale, "X", 1,2)
+	H += TERMS(-g_tau*B_scale, "ZIZ",1,2)
+	H += TERMS(-g_tau*B_scale, "XIX",1,2)
+
+	H += TERMS(-gamma, "XX", 0,2)
+
     return H
 end
 
@@ -45,20 +46,19 @@ println("Making abstract Hamiltonian...")
 #make the abstract Hamiltonian from our parameters
 abstract_hamiltonian = abstract_Ham_Ising_star(L,g_sigma,U_sigma,g_tau,U_tau,gamma,B_scale)
 
-validity_symmetries = Dict{String,Int64}()
-symmetries = Dict{String,Int64}("Z2A" => 1, "Z2B" => 1,"K"=>1) 
-println("Making easy basis for symmetry sectors:\n\t", validity_symmetries,"\n\t",symmetries)
+symmetries = Dict{String,Int64}("Z2A" => 1, "Z2B" => 1,"K"=>0) 
+println("Making easy basis for symmetry sectors:\n\t",symmetries)
 #make a basis with symmetries --- this can be a bit slow
-basis = make_easy_basis(L,a,validity_symmetries,symmetries)
+basis = make_basis(L; unitCellSize=a, syms=symmetries)
 
-# println("Making full basis...")
-# SzTrbasis2 = make_full_basis(L)
+println("Making full basis...")
+#basis = make_basis(L)
 
 println("Basis size: ", length(basis.conj_classes))
 
 println("Making the Hamiltonian matrix...")
 #make the Hamiltonian matrix
-H = make_Hamiltonian(L,basis,abstract_hamiltonian)
+H = construct_matrix(basis,abstract_hamiltonian)
 
 
 println("Finding smallest eigenvalues...")

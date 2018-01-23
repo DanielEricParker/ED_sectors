@@ -57,19 +57,14 @@ struct TERM
     #such as "0.5 Sz Sz"
     prefactor :: Float64
     operator :: Array{OP}
+
+    TERM(prefactor :: Float64,
+         operator :: Array{OP}) = new(
+             prefactor,
+             sort(operator, by = (op) -> op.site)
+         )
 end
 Base.show(io::IO, t::TERM) = print(io,  t.prefactor, "*", t.operator)
-
-
-
-function term(prefactor :: Float64, ops :: OP ...)
-	#alternative constructor for TERM type
-	#uses variable arguments for improved readability
-    ops_array = collect(ops)
-    #sort to site-order, important if we're wrapping around
-    sort!(ops_array, by = (op) -> op.site)
-	return TERM(prefactor, ops_array)
-end
 
 if testing2
     testTerm = TERM(0.5,[OP("+",3),OP("-",4),OP("-",5)])
@@ -77,42 +72,96 @@ if testing2
     println(typeof(testTerm.operator))
 end
 
+
+struct TERMS
+	#type for storing a periodically repeated set of terms
+	prefactor :: Float64
+	operatorNames :: String
+	startsite :: Int
+	spacing :: Int
+
+	#constructors
+	TERMS(prefactor :: Real,
+		operatorNames :: String,
+		startsite :: Int,
+		spacing :: Int) = new(Float64(prefactor), operatorNames, startsite, spacing)
+
+	TERMS(prefactor :: Real, 
+		operatorNames :: String) = new(Float64(prefactor), operatorNames, 0, 1)
+end
+Base.show(io::IO, t::TERMS) = print(io,  t.prefactor, "*", t.operatorNames, " starting at site ", t.startsite, ", spaced by ", t.spacing)
+
+
 if testing2
-	println("Testing making term in the Hamiltonian")
-	println(term(0.5,OP("+",3),OP("-",4),OP("-",5)))
+	testTerms = TERMS(3.0,"ZXZ",1,2)
+	println(testTerms)
+
+
+	testTerms = TERMS(-4,"ZWXZ")
+	println(testTerms)
 end
 
 
 
 
-
-
-struct HAMILTONIAN
+struct ABSTRACT_OP
     #type for storing Hamiltonians
+    L :: Int
     name :: String
     terms :: Array{TERM}
+    pbc :: Bool
+
+
+    function ABSTRACT_OP(    
+    	L :: Int,
+	    name :: String,
+	    pbc :: Bool,
+	    terms :: Array{TERM})
+
+	    #implements check_Hamiltonian
+	    for term in terms
+	        for op in term.operator
+	            if op.site < 0 || op.site >= L
+	                error("Out of bounds! Term:", term)
+	            end
+	        end
+	    end
+
+	    #removed terms that are basically zero for float errors
+	    #this should be improved at some point
+	    terms = filter( t -> abs(t.prefactor) >= 10e-12, terms)
+
+	    new(L,name,terms,pbc)
+	end
+
+    ABSTRACT_OP(    
+    	L :: Int,
+	    name :: String,
+	    pbc :: Bool) = new(L,name,[],pbc)
+
+
+    #non-periodic boundary conditions by default
+    ABSTRACT_OP(
+    	L :: Int,
+    	name :: String,
+    	terms :: Array{TERM})= ABSTRACT_OP(L,name,terms,false)
 end
 
-function Base.show(io::IO, H::HAMILTONIAN)
-	print(io, "Hamiltonian: ",  H.name, " (Length ", length(H.terms), ")")
+function Base.show(io::IO, H::ABSTRACT_OP)
+	print(io, "ABSTRACT_OP: ",  H.name, " (",length(H.terms), " operators on ", H.L, " sites. PBC = ", H.pbc,")")
 	for t in H.terms
 		print(io,"\n", t)
 	end
 end
 
 
-function Base.:+(H :: HAMILTONIAN, t :: TERM)
-	#gives a way to add terms to Hamiltonians
-	#usage: h += term
-
-    #Kludgey, maybe move to a separate function?
-    if abs(t.prefactor) >= 10e-12
-    	terms = H.terms
-    	push!(terms,t)
-    	return HAMILTONIAN(H.name,terms)
-    else
-        return H
-    end
+"""
+Gives a way to add single terms to Hamiltonians
+usage: H += TERM(0.5,[OP("+",3),OP("-",4),OP("-",5)])
+"""
+function Base.:+(H :: ABSTRACT_OP, t :: TERM)
+	newTerms = [H.terms; t]    
+    return ABSTRACT_OP(H.L,H.name,H.pbc,newTerms)
 end
 
 if testing2
@@ -121,7 +170,7 @@ if testing2
     t2 = term(0.5,OP("-",3),OP("z",5))
     println(typeof(t1.operator))
     println(typeof(t2.operator))
-    testHam = HAMILTONIAN("testing", [t1])
+    testHam = ABSTRACT_OP("testing", [t1])
     println(testHam)
     
     testHam += t2
@@ -129,103 +178,48 @@ if testing2
 end
 
 """
-Checks that all the operators in the Hamiltonian are within bounds.
+Gives a way to add many repeated terms to Hamiltonians
+usage: H += TERM(0.5,"ZZ")
+or     H += TERM(0.5,"ZZ",1,2) #start at site 1, space by 2
 """
-function check_Hamiltonian(H :: HAMILTONIAN, L :: Int)
-    # println("Checking Hamiltonian...")
-    for term in H.terms
-        for op in term.operator
-            if op.site < 0 || op.site >= L
-                error("Out of bounds! Term:", term)
-            end
-        end
-    end
-    return true
+function Base.:+(H :: ABSTRACT_OP, terms :: TERMS)
+
+	newTerms = [H.terms; make_terms(H.L,H.pbc,terms)]
+	return ABSTRACT_OP(H.L,H.name,H.pbc,newTerms)
 end
 
 
-############# more complicated constructor for abstract Hamiltonians ############
-
-
-
-
-
 """
-Tries to make constructing a Hamiltonian as natural as possible,
-and as close as possible to how it's done analytically.
-
-e.g H = sum_i - X_i - Z_i Z_i+1
-
-is
-
-H = Ham(
-	(-1,"X"),
-	(-1,"ZZ")
-)
-
-but for something more complicated like
-
-H = - sum_{i even} X_i + Z_{i-1} X_i Z_i
-
-
-H = Ham(
-	(-1,"X",2,1), #space by 1, start on site 1
-	(-1,"ZXZ",2,0) #spaceby 1, start on site 0
-)
-
+Parses a TERMS struct into individual TERM structs
 """
-function make_abstract_Hamiltonian(
+function make_terms(
 	L :: Int,
 	pbc :: Bool,
-	terms
-	...
-	)
-
-	# #periodic boundary conditions
-	# pbc = true
+	terms :: TERMS)
 
 	#turn the terms in to abstract terms
 	#abstract terms are tuple (prefactor, [Op names])
-	allowed_operator_names = ['X','Y','Z','+','-']
-	abstractTerms = Array{Tuple{Float64,Array{String},Int,Int}}(uninitialized,length(terms))
+	allowed_operator_names = ['I','X','Y','Z','+','-']
 
-	#parse the operator names and check that they're real operators
-	for (i,term) in enumerate(terms)
-		termPrefactor = Float64(term[1])
-
-		for op_name in term[2]
-			if !in(op_name, allowed_operator_names)
-				error("Unsupported operator name \"", op_name, "\" in term, ", term)
-			end
+	for op_name in terms.operatorNames
+		if !in(op_name, allowed_operator_names)
+			error("Unsupported operator name \"", op_name, "\" in term, ", terms)
 		end
-		termNames = [string(ch) for ch in term[2]]
+	end
+	opNames = [string(ch) for ch in terms.operatorNames]
 
-		termSpace = length(term) == 2 ? 1 : term[3]
-		termStart = length(term) == 2 ? 0 : term[4] #we zero count for sites
+	termEnd = pbc ? L-1 : L - length(opNames)
 
-		abstractTerms[i] = (termPrefactor, termNames, termSpace, termStart)
+	termsArray = []
+	for i in terms.startsite : terms.spacing : termEnd
+		operators = [OP(op_name,(i+j-1)%L) for (j,op_name) in enumerate(opNames)]
+		#remove the Identity operators since we don't need those
+		operators = filter( (op) -> op.name != "I", operators)
+		term = TERM(terms.prefactor, operators)
+		push!(termsArray,term)
 	end
 
-	realTerms = []
-	#for each term, work on what sites it's on
-	for at in abstractTerms
-
-		#what site should we end at?
-		termEnd = pbc ? L-1 : L - length(at[2])
-
-		# for i in start: space : end
-		for i in at[4] : at[3] : termEnd
-			#make the actual operators
-			operators = [OP(op_name,(i+j-1)%L) for (j,op_name) in enumerate(at[2])]
-			realTerm = TERM(at[1], operators)			
-			push!(realTerms,realTerm)
-		end 
-	end
-
-	H = HAMILTONIAN("",realTerms)
-
-	return H
-
+	return Array{TERM}(termsArray)
 end
 
 
@@ -482,17 +476,32 @@ end
 
 ################ Hamiltonian constructor for a given basis ##########################
 
+"""
+Construts a matrix from an abstract operator for the given basis.
+"""
+function construct_matrix(
+    basis :: Basis, 
+    abstract_op :: ABSTRACT_OP)
+
+    #this should eventually decide if the operator satisfies the symmetries
+
+    #decide if we want the full constructor, or the one with symmetries
+    if length(basis.q_numbers) == 0
+        construct_matrix_full(basis,abstract_op)
+    else 
+        construct_matrix_sym(basis,abstract_op)
+    end
+
+end
 
 
 
-function make_Hamiltonian(L :: Int, basis :: Basis, abstract_Ham :: HAMILTONIAN)
+
+function construct_matrix_sym(basis :: Basis, abstract_op :: ABSTRACT_OP)
     #L - length of the spin chain
     #basis - basis Dict
     #reps - represenatives of conjugacy classes Dict
     #opsList - list of operators we want to add to the Hamiltonian
-
-    #make sure that everything is in-bounds
-    check_Hamiltonian(abstract_Ham,L)
 
     dim = length(basis.conj_classes)
     H = spzeros(ComplexF64,dim,dim)
@@ -501,7 +510,7 @@ function make_Hamiltonian(L :: Int, basis :: Basis, abstract_Ham :: HAMILTONIAN)
     for (x,cc_x) in basis.conj_classes
 
         #loop over terms in the Hamiltonian
-        for term in abstract_Ham.terms
+        for term in abstract_op.terms
             #find |y> = H |x> ####ASSUMPTION: this is a state, not superposition
             y = apply_operators(VEC(1.0,x),term)
 
@@ -545,6 +554,7 @@ end
 
 
 
+###define Pauli operators concretely
 
 pauli_1 = sparse([1,2],[1,2],[1.0,1.0])
 pauli_x = sparse([1,2],[2,1],[1.0,1.0])
@@ -552,7 +562,10 @@ pauli_y = sparse([1,2],[2,1],[1.0*im,-1.0*im])
 pauli_z = sparse([1,2],[1,2],[1.0,-1.0])
 
 
+pauli_plus = sparse([0 2.0; 0 0])
+pauli_minus = sparse([0 0; 2.0 0])
 
+ 
 """
 Returns the correct Pauli matrix for the name
 """
@@ -563,8 +576,12 @@ function get_pauli_matrix(name :: String)
             return pauli_y
         elseif name == "Z"
             return pauli_z
+        elseif name == "+"
+            return pauli_plus
+        elseif name == "-"
+            return pauli_minus
         else 
-            error("Unsupported operator name: ",op.name)
+            error("Unsupported operator name: ",name)
         end
 end
 
@@ -578,16 +595,13 @@ Quickly makes a Hamiltonian for the full basis with no symmetry constraints.
 * 'L :: Int': the length of the spin chain
 * 'abstract_Ham :: HAMILTONIAN': the abstract operator to implement
 """
-function full_Hamiltonian(L :: Int, abstract_Ham :: HAMILTONIAN)
+function construct_matrix_full(basis :: Basis, abstract_op :: ABSTRACT_OP)
 
-    #make sure that everything is in-bounds
-    check_Hamiltonian(abstract_Ham,L)
-
-    dim = 2^L
+    dim = 2^basis.L
     H = spzeros(ComplexF64,dim,dim)
 
     #loop over terms in the Hamiltonian
-    for term in abstract_Ham.terms
+    for term in abstract_op.terms
 
         #start with the Identity
         term_matrix = sparse(I,1,1)
@@ -595,7 +609,6 @@ function full_Hamiltonian(L :: Int, abstract_Ham :: HAMILTONIAN)
 
         #loop over terms, i.e. 2.0 XZX -> [X,Z,X]
         for op in term.operator
-
             pos = op.site
             #how many ones in the middle?
             pos_shift = pos-last_pos-1
@@ -613,7 +626,7 @@ function full_Hamiltonian(L :: Int, abstract_Ham :: HAMILTONIAN)
         end
 
         #fill out matrix to 2^L x 2^L
-        pos_shift = L - 1 - last_pos
+        pos_shift = basis.L - 1 - last_pos
         if pos_shift > 0
             shift_size = 2^pos_shift
             term_matrix = kron(term_matrix, sparse(I,shift_size,shift_size))
