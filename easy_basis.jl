@@ -55,45 +55,6 @@ Base.show(io::IO,orb::ORBIT) = print(io,
 "]"
 	)
 
-
-
-
-############################ Full constructors #################################
-#we want a separate constructor for the full basis, since it's so much simpler
-#returns a basis object, so it's cross-compatible
-
-
-function make_full_basis(L :: Int)
-    #L - length
-    #returns - the full basis of size 2^L, for testing
-    basis = Dict{UInt64,BasisVector}()
-    #x - > ([x'], phase factor e^i theta(x,x'))
-    reps = Dict{UInt64,ConjClass}()
-    #[x] -> (index of [x], Norm([x])^2)
-    #offset index by 1 for julia being special
-    return Basis(L,basis, reps, Dict())
-end
-
-# function make_full_basis(L :: Int)
-#     #L - length
-#     #returns - the full basis of size 2^L, for testing
-#     basis = Dict{UInt64,BasisVector}([UInt64(s) => BasisVector(UInt64(s),1.0) for s in 0:(2^L)-1])
-#     #x - > ([x'], phase factor e^i theta(x,x'))
-#     reps = Dict{UInt64,ConjClass}([UInt64(s) => ConjClass(s+1,1) for s in 0:(2^L)-1])
-#     #[x] -> (index of [x], Norm([x])^2)
-#     #offset index by 1 for julia being special
-#     return Basis(L,basis, reps, Dict())
-# end
-
-if testing2
-    println("Testing full basis")
-    basisFull = make_full_basis(4)
-    println(collect(values(basisFull.get_conj_class)))
-    display_states(collect(keys(basisFull.conj_classes)))
-    println(collect(values(basisFull.conj_classes)))
-end 
-
-
 ##################### Symmetry operations  #########################
 
 function measure_N_up(s::UInt64, L::Int)

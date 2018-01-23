@@ -61,6 +61,7 @@ struct TERM
     TERM(prefactor :: Float64,
          operator :: Array{OP}) = new(
              prefactor,
+             #we want to automatically sort the operators by site
              sort(operator, by = (op) -> op.site)
          )
 end
@@ -179,8 +180,8 @@ end
 
 """
 Gives a way to add many repeated terms to Hamiltonians
-usage: H += TERM(0.5,"ZZ")
-or     H += TERM(0.5,"ZZ",1,2) #start at site 1, space by 2
+usage: H += TERMS(0.5,"ZZ")
+or     H += TERMS(0.5,"ZZ",1,2) #start at site 1, space by 2
 """
 function Base.:+(H :: ABSTRACT_OP, terms :: TERMS)
 
@@ -370,109 +371,6 @@ if testing2
     println(apply_operators(v,TERM(2.0,ops)))
     println(apply_operators(v,TERM(3.0,ops4)))
 end
-
-
-
-#########################Example Hamiltonians ########################
-
-
-
-# function make_XXZ_operators(L :: Int, Delta :: Float64)
-#     #L -- length of the spin chain
-#     #Delta -- anisotropy parameter
-#     opsList = []
-#     for i in 0:L-1
-#         push!(opsList, (0.5, [OP("+",i),OP("-",mod(i+1,L))]))
-#         push!(opsList, (0.5, [OP("-",i),OP("+",mod(i+1,L))]))
-#         push!(opsList, (Delta*1.0, [OP("Z",i),OP("Z",mod(i+1,L))]))
-#     end
-
-#     return opsList
-# end
-
-# if testing
-#     println("Testing Making XXZ Operators")
-#     map(println,make_XXZ_operators(6,0.8))
-# end
-
-
-
-
-# function make_XXZ_operators_new(L :: Int, Delta :: Float64)
-#     #L -- length of the spin chain
-#     #Delta -- anisotropy parameter
-#     H = HAMILTONIAN("XXZ", [])
-#     for i in 0:L-1
-#         H += term(0.5, OP("+",i), OP("-",(i+1)%L))
-#         H += term(0.5, OP("-",i), OP("+",(i+1)%L))
-#         H += term(Delta*1.0, OP("Z",i), OP("Z",(i+1)%L))
-#     end
-
-#     return H
-# end
-
-# if testing
-# 	println(make_XXZ_operators_new(4,0.7))
-# end
-
-
-# function make_XXZ_star_operators(L :: Int, Delta :: Float64, alpha :: Float64, g_tau :: Float64, u_tau :: Float64, B_scale :: Float64)
-
-#     opsList = []
-#     for i in 0:2:L-1
-#         push!(opsList, (0.5, [OP("+",i),OP("-",mod(i+2,L))]))
-#         push!(opsList, (0.5, [OP("-",i),OP("+",mod(i+2,L))]))
-#         push!(opsList, (Delta*1.0, [OP("Z",i),OP("Z",mod(i+2,L))]))
-#         push!(opsList, (-1.0*B_scale, [OP("X",mod(i+1,L))]))
-#         push!(opsList, (-g_tau*B_scale, [OP("Z",mod(i+1,L)),OP("Z",mod(i+3,L))]))
-#         push!(opsList, (-u_tau*B_scale, [OP("X",mod(i+1,L)),OP("X",mod(i+3,L))]))
-#         push!(opsList, (alpha*1.0, [OP("Z",i),OP("X",mod(i+1,L)), OP("Z",mod(i+2,L))]))
-#     end
-#     return opsList
-# end
-
-
-# if testing2
-#     println("Testing abstract basis for XXZ*")
-#     L=4
-#     Delta = 0.8
-#     alpha = 0.0
-#     g_tau  = 0.3
-#     u_tau = 0.1
-#     B_scale = 1.0
-#     H_XXZ_1 = make_XXZ_star_operators(L,Delta,alpha,g_tau,u_tau,B_scale)
-
-# end
-
-
-
-# function make_XXZ_star_operators_new(L :: Int, Delta :: Float64, alpha :: Float64, g_tau :: Float64, u_tau :: Float64, B_scale :: Float64)
-
-# 	H = HAMILTONIAN("XXZ_star",[])
-#     for i in 0:2:L-1
-# 		H += term(0.5, 				OP("+", i), 	OP("-", (i+2) % L))
-# 		H += term(0.5, 				OP("-", i), 	OP("+", (i+2) % L))
-# 		H += term(Delta, 			OP("Z", i), 	OP("Z", (i+2) % L))
-# 	 	H += term(-1.0*B_scale, 	OP("X",(i+1) % L))
-# 	 	H += term(-g_tau*B_scale, 	OP("Z",(i+1) % L),OP("Z",(i+3) % L))
-# 	 	H += term(-u_tau*B_scale, 	OP("X",(i+1) % L),OP("X",(i+3) % L))
-# 	 	H += term(alpha, 			OP("Z",i),		OP("X",(i+1) % L),	OP("Z", (i+2)%L))
-#     end
-#     return H
-# end
-
-# if testing2
-#     println("Testing abstract basis for XXZ*")
-#     L=4
-#     Delta = 0.8
-#     alpha = 0.0
-#     g_tau  = 0.3
-#     u_tau = 0.1
-#     B_scale = 1.0
-#     H_XXZ_2 = make_XXZ_star_operators_new(L,Delta,alpha,g_tau,u_tau,B_scale)
-#     [println(TERM(H_XXZ_1[i][1],H_XXZ_1[i][2]),"\t", H_XXZ_2.terms[i]) for i in 9:10]
-# end
-
 
 ################ Hamiltonian constructor for a given basis ##########################
 
