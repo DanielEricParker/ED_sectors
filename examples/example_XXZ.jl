@@ -34,9 +34,9 @@ println(abstract_H)
 H = construct_matrix(basisFull, abstract_H)
 
 #full ED
-evs = eigfact(Matrix(H))
-println(typeof(evs.values))
-println(typeof(evs.vectors))
+eigsys = full_ED(H)
+println(typeof(eigsys.evs))
+println(typeof(eigsys.O))
 
 #show the eigenvalues
-println(evs.values[1:10])
+println(eigsys.evs[1:10])

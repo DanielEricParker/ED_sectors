@@ -9,6 +9,31 @@
 ###################s#################################
 
 
+"""
+Function to compute the first k eigenvalues.
+"""
+function k_eigvals(H :: AbstractMatrix, k :: Int)
+	L = size(H)[1]
+	k = min(k, div(L,2))#can't take too many with a small matrix, because Lanczos breaks
+	return real(eigs(H; which=:SR, nev=k)[1])
+end 
+
+"""
+Function to compute the first k eigenvalues and eigenvectors.
+"""
+function k_eigsys(H :: AbstractMatrix, k :: Int)
+	L = size(H)[1]
+	k = min(k, div(L,2))
+	return eigs(H; which=:SR, nev=k)
+end 
+
+"""
+Function to perform full ED. Actually just a wrapper for the EigSys constructor.
+"""
+function full_ED(H :: AbstractMatrix)
+	return EigSys(Matrix(H)) #convert to dense, because really there's no point in this for a sparse matrix. it's the same speed I believe.
+end
+
 
 """
 Function to return a correlation with no time evolution

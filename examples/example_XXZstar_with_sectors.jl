@@ -36,8 +36,6 @@ B_scale = 1.0
 println("Making abstract Hamiltonian...")
 #make the abstract Hamiltonian from our parameters
 abstract_hamiltonian = make_XXZ_star_operators_new(L,Delta,alpha,g_tau,u_tau,B_scale)
-println(abstract_hamiltonian)
-
 
 symmetries = Dict{String,Int64}("SzA" => 3,"K" => 3, "Z2B" => 1)
 println("Making basis for symmetry sectors: \n\t", symmetries)
@@ -53,7 +51,7 @@ H = construct_matrix(basis,abstract_hamiltonian)
 
 println("Finding smallest eigenvalues...")
 #find the smallest 10 eigenvalues
-evs = eigs(H;which=:SR, nev=10)
+evs = k_eigvals(H,10)
 
 #show the eigenvalues
-println(real(evs[1]))
+println(evs)
