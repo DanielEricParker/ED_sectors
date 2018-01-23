@@ -59,6 +59,9 @@ struct TERM
     operator :: Array{OP}
 
     TERM(prefactor :: Float64,
+    	operator :: OP) = new(prefactor,[operator])
+
+    TERM(prefactor :: Float64,
          operator :: Array{OP}) = new(
              prefactor,
              #we want to automatically sort the operators by site
@@ -161,6 +164,35 @@ function Base.show(io::IO, H::ABSTRACT_OP)
 end
 
 
+#ABSTRACT_OP's should form a vector space with
+#addition and scalar multiplication
+
+"""
+Adds two abstract operators. Operators must be of the same size.
+"""
+function Base.:+(O1 :: ABSTRACT_OP, O2 :: ABSTRACT_OP)
+    if O1.L == O2.L && O1.pbc == O2.pbc
+    	newName = string(O1.name," + ",O2.name)
+    	newTerms = [O1.terms;O2.terms]
+    	return ABSTRACT_OP(O1.L,newName,O1.pbc,newTerms)
+    else
+    	error("Error ABSTRACT_OP's must have the same length and boundary conditions to be added.")
+	end
+end
+
+"""
+Adds two abstract operators. Operators must be of the same size.
+"""
+function Base.:*(O :: ABSTRACT_OP, lambda :: Float64)
+	newTerms = O.terms
+	for t in newTerms
+		t.prefactor *= lambda
+	end
+	return ABSTRACT_OP(O.L,O.name,O.pbc,newTerms)
+end
+
+
+
 """
 Gives a way to add single terms to Hamiltonians
 usage: H += TERM(0.5,[OP("+",3),OP("-",4),OP("-",5)])
@@ -193,6 +225,7 @@ function Base.:+(H :: ABSTRACT_OP, terms :: TERMS)
 	newTerms = [H.terms; make_terms(H.L,H.pbc,terms)]
 	return ABSTRACT_OP(H.L,H.name,H.pbc,newTerms)
 end
+
 
 
 """

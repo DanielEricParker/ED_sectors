@@ -71,7 +71,7 @@ Function to return a correlation (no time evolution)
 
 function correlation1pt(
 	psi :: Array{Complex{Float64}},
-	Op :: OP,
+	op :: OP,
 	factor :: Float64,
 	basis :: Basis
 	)
@@ -80,7 +80,7 @@ function correlation1pt(
 	len = length(psi)
 
 	abstract_O = ABSTRACT_OP(basis.L,op)
-	Op_mat = make_Hamiltonian(basis, abstract_O)
+	Op_mat = construct_matrix(basis, abstract_O)
 
 	#<psi|Op|psi>
 	v = Op_mat * psi #N for no transpose

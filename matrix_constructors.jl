@@ -320,9 +320,3 @@ function construct_matrix_full(basis :: Basis, abstract_op :: ABSTRACT_OP)
 
     return H
 end
-
-
-
-
-
-
