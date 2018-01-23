@@ -51,12 +51,11 @@ function correlation1pt(
 	basis :: Basis
 	)
 	#	this is dumb. perhaps Basis should contain L?
-	L = Int(round(log(2,length(psi))))
+	#L = Int(round(log(2,length(psi))))
 	len = length(psi)
 
-	abstract_O = HAMILTONIAN(L,"O", [term(factor,Op)])
-	Op_mat = make_Hamiltonian(L, basis, abstract_O)
-
+	abstract_O = ABSTRACT_OP(basis.L,op)
+	Op_mat = make_Hamiltonian(basis, abstract_O)
 
 	#<psi|Op|psi>
 	v = Op_mat * psi #N for no transpose
@@ -145,14 +144,14 @@ function entanglement_entropy(
 	rho = reduce_density_matrix(psi,l)
 	#println(size(rho))
 	#println(rho)
-	evs = eigfact(rho)
+	eigsys = EigSys(rho)
 
 	#println(real(evs.values))
 
 	S = Float64(0.0)
 	tol = 10e-14#hardcoded tolerance for numerical error
 
-	for p in real(evs.values)
+	for p in real(eigsys.evs)
 		if p > epsilon
 			S += -p*log(p)
 			#println(S)

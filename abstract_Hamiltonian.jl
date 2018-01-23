@@ -109,8 +109,9 @@ struct ABSTRACT_OP
     #type for storing Hamiltonians
     L :: Int
     name :: String
-    terms :: Array{TERM}
     pbc :: Bool
+    terms :: Array{TERM}
+
 
 
     function ABSTRACT_OP(    
@@ -132,20 +133,26 @@ struct ABSTRACT_OP
 	    #this should be improved at some point
 	    terms = filter( t -> abs(t.prefactor) >= 10e-12, terms)
 
-	    new(L,name,terms,pbc)
+	    new(L,name,pbc,terms)
 	end
+
+    #short constructor for making this quickly
+    ABSTRACT_OP(
+        L :: Int,
+        op :: OP,
+        ) = new(L,"",false,[TERM(1.0,[op])])
 
     ABSTRACT_OP(    
     	L :: Int,
 	    name :: String,
-	    pbc :: Bool) = new(L,name,[],pbc)
+	    pbc :: Bool) = new(L,name,pbc,[])
 
 
     #non-periodic boundary conditions by default
     ABSTRACT_OP(
     	L :: Int,
     	name :: String,
-    	terms :: Array{TERM})= ABSTRACT_OP(L,name,terms,false)
+    	terms :: Array{TERM})= ABSTRACT_OP(L,name,false,terms)
 end
 
 function Base.show(io::IO, H::ABSTRACT_OP)

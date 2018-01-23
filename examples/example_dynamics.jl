@@ -4,7 +4,7 @@
 ######################################################################
 
 
-using BenchmarkTools, Compat
+using BenchmarkTools#, Compat
 
 include("../main.jl")
 
@@ -16,12 +16,10 @@ include("../main.jl")
 function abstract_XXZ_Hamiltonian(L :: Int, Delta :: Float64)
     #L -- length of the spin chain
     #Delta -- anisotropy parameter
-    H = HAMILTONIAN("XXZ", [])
-    for i in 0:L-1
-        H += term(0.5, OP("+",i), OP("-",(i+1)%L))
-        H += term(0.5, OP("-",i), OP("+",(i+1)%L))
-        H += term(Delta*1.0, OP("Z",i), OP("Z",(i+1)%L))
-    end
+    H = ABSTRACT_OP(L, "XXZ", true)
+    H += TERMS(0.5, "+-")
+    H += TERMS(0.5, "-+")
+    H += TERMS(Delta*1.0, "ZZ")
 
     return H
 end
@@ -31,13 +29,13 @@ L = 8
 Delta = 0.8
 
 #make the basis
-basisFull = make_full_basis(L)
+basisFull = make_basis(L)
 
 #make the abstract Hamiltonian
 abstract_H = abstract_XXZ_Hamiltonian(L,Delta)
 
 #make the Hamiltonian matrix
-H = Matrix(make_Hamiltonian(L, basisFull, abstract_H))
+H = Matrix(construct_matrix(basisFull, abstract_H))
 
 # #full ED
 # evs = eigfact(Matrix(H))
@@ -47,15 +45,15 @@ H = Matrix(make_Hamiltonian(L, basisFull, abstract_H))
 # #show the eigenvalues
 # println(evs.values[1:10])
 
-#make the evolver
-println("Testing the evolver...")
-evolve = evolver(H)
-println(evolve)
+#make the eigsysr
+println("Testing the eigsys...")
+eigsys = EigSys(H)
+println(eigsys)
 
 #test the eigenvalues and how to access them
 n = 3
-vec = evolve.O[:,n]	#get nth eigenvector
-w = evolve.evs[n]	#get nth eigenvalue
+vec = eigsys.O[:,n]	#get nth eigenvector
+w = eigsys.evs[n]	#get nth eigenvalue
 v2 = H * vec
 v3 = w * vec
 println(norm(v2-v3)) #should be zero
@@ -63,52 +61,52 @@ println(norm(v2-v3)) #should be zero
 
 #test the 1pt correlation fcn 
 #println("Testing the 1pt correlation fcn")
-psi = evolve.O[:,25] #the 25th state, because why not
-E_psi = evolve.evs[25]
+psi = eigsys.O[:,25] #the 25th state, because why not
+E_psi = eigsys.evs[25]
 t = 10.0
 ts = [Float64(t) for t in 1:20]
 Op = OP("X",3)
 factor = 1.0
 
 println("Finding 1pt function from abstract Op")
-corr1pt = correlation1pt(psi, evolve, t, Op, factor, basisFull)
+corr1pt = correlation1pt(psi, eigsys, t, Op, factor, basisFull)
 println(corr1pt)
 
 #println("Finding 1pt function from matrix Op")
-abstract_O = HAMILTONIAN("O", [term(factor,OP("Z",3),OP("Z",4))])
-Op_mat_sp = make_Hamiltonian(L, basisFull, abstract_O)
+abstract_O = ABSTRACT_OP(L,"O",false,[TERM(factor,[OP("Z",3),OP("Z",4)])])
+Op_mat_sp = construct_matrix(basisFull, abstract_O)
 Op_mat = Matrix(Op_mat_sp)
 
-corr = correlation(psi, evolve, t, Op_mat)
+corr = correlation(psi, eigsys, t, Op_mat)
 println(corr)
 
 println("Finding 1pt function from matrix Op and density matrix rho")
 rho = kron(transpose(psi),psi)
-corr_rho = correlation1pt(rho, evolve, t, Op_mat)
+corr_rho = correlation1pt(rho, eigsys, t, Op_mat)
 println(corr_rho)
 
 
 ts = [Float64(t) for t in 1:20]
 
 println("Finding 2pt function for rho")
-corr_2pt_rho = correlation2pt(rho,evolve,t,Op_mat,Op_mat)
+corr_2pt_rho = correlation2pt(rho,eigsys,t,Op_mat,Op_mat)
 println(corr_2pt_rho)
 
 println("Finding 2pt timeseries for psi")
-timesseries_rho = timeseries(psi,evolve,[t],Op_mat,Op_mat)
+timesseries_rho = timeseries(psi,eigsys,[t],Op_mat,Op_mat)
 println(timesseries_rho)
 
 
 println("Finding 2pt timeseries for rho")
-timesseries_rho = timeseries(rho,evolve,[t],Op_mat,Op_mat)
+timesseries_rho = timeseries(rho,eigsys,[t],Op_mat,Op_mat)
 println(timesseries_rho)
 
 
 
-@btime [correlation2pt(rho,evolve,t1,Op_mat,Op_mat) for t1 in ts]
-@btime timeseries(rho,evolve,ts,Op_mat,Op_mat) #obviously this is way faster
+@btime [correlation2pt(rho,eigsys,t1,Op_mat,Op_mat) for t1 in ts]
+@btime timeseries(rho,eigsys,ts,Op_mat,Op_mat) #obviously this is way faster
 #it's about a factor 3 for 10 times
-@btime timeseries(psi,evolve,ts,Op_mat,Op_mat) #and this is waaaay faster yet
+@btime timeseries(psi,eigsys,ts,Op_mat,Op_mat) #and this is waaaay faster yet
 
 
 
@@ -116,14 +114,14 @@ println(timesseries_rho)
 
 #old version
 println("Finding 2pt timeseries for psi")
-timesseries_psi = timeseries(psi,evolve,ts,Op_mat,Op_mat)
+timesseries_psi = timeseries(psi,eigsys,ts,Op_mat,Op_mat)
 println(timesseries_psi)
-#@btime timeseries(psi,evolve,ts,Op_mat,Op_mat)
+#@btime timeseries(psi,eigsys,ts,Op_mat,Op_mat)
 
 #old version
 println("Finding 2pt timeseries for psi --- faster?")
-timesseries_psi_2 = timeseries2(psi,E_psi,evolve,ts,Op_mat_sp)
+timesseries_psi_2 = timeseries2(psi,E_psi,eigsys,ts,Op_mat_sp)
 println(timesseries_psi_2)
-#@btime timeseries2(psi,E_psi,evolve,ts,Op_mat_sp)
+#@btime timeseries2(psi,E_psi,eigsys,ts,Op_mat_sp)
 
 println("Are they approximately equal? ", isapprox(timesseries_psi,timesseries_psi_2))

@@ -13,24 +13,38 @@
 ###########Issue! I mixed up U and U^d
 #Note: D  = U^d H U or H = U D U^d
 #so exp(-i t H) = U exp(-it D) U^d
-#incorrect functions are commented for now
+#incorrect functions are commentsed for now
 
-
-struct Evolver
+"""
+Struct for eigensystems, containing all eigenvectors and eigenvalues of matrix, the output of full ED.
+"""
+struct EigSys
 	evs :: Array{Float64} #eigenvalues
 	O :: Array{Complex{Float64},2} #eigenvectors
-end
-Base.show(io::IO, evolve :: Evolver) = print(io, "Evolver[] of size ", length(evolve.evs))
 
 
-"""
-Function to perform full diagonalization on the Hamiltonian.
-Returns an Evolver (which is really just the eigenvalues and vectors).
-"""
-function evolver(H :: Matrix)
-	eigensystem = eigfact(Matrix(H))
-	return Evolver(real(eigensystem.values),eigensystem.vectors)
+	"""
+	Function to perform full diagonalization on the Hamiltonian.
+	Returns an EigSys.
+	"""
+	function EigSys(H :: Matrix)
+		eigensystem = eigfact(Matrix(H))
+		new(real(eigensystem.values),eigensystem.vectors)
+	end
+
+
+	"""
+	Alternatively, construct some other way.
+	Returns an EigSys.
+	"""
+	function EigSys(
+				evs :: Array{Float64}, #eigenvalues
+				O :: Array{Complex{Float64},2} #eigenvectors
+			)
+		new(evs,O)
+	end
 end
+Base.show(io::IO, eigsys :: EigSys) = print(io, "Evolver[] of size ", length(eigsys.evs))
 
 
 """
@@ -51,20 +65,17 @@ Function to return a correlation at a certain type.
 #in particular, this makes no use of sparsity
 function correlation1pt(
 	psi :: Array{Complex{Float64},1},
-	evolve :: Evolver,
+	eigsys :: EigSys,
 	t :: Float64,
 	Op :: OP,
 	factor :: Float64,
 	basis :: Basis
 	)
-	#this is dumb. perhaps Basis should contain L?
-	L = Int(round(log(2,length(psi))))
-	#println("L: ", L)
 
-	abstract_O = HAMILTONIAN("O", [term(factor,Op)])
-	Op_mat = Matrix(make_Hamiltonian(L, basis, abstract_O))
+	abstract_O = ABSTRACT_OP(basis.L,Op)
+	Op_mat = construct_matrix(basis, abstract_O)
 
-	return correlation(psi,evolve,t,Op_mat)
+	return correlation(psi,eigsys,t,Op_mat)
 end
 
 """
@@ -81,15 +92,15 @@ Function to return a correlation at a certain type.
 
 function correlation(
 	psi :: Array{Complex{Float64}},
-	evolve :: Evolver,
+	eigsys :: EigSys,
 	t :: Float64,
-	Op :: Matrix
+	Op :: AbstractMatrix
 	)
 	len = length(psi)
 	
 
-	expEigenvals1 = [exp(-im * t * ev) for ev in evolve.evs]
-	expEigenvals2 = [exp(im * t * ev) for ev in evolve.evs]
+	expEigenvals1 = [exp(-im * t * ev) for ev in eigsys.evs]
+	expEigenvals2 = [exp(im * t * ev) for ev in eigsys.evs]
 
 	D1 = Diagonal(expEigenvals1)
 	D2 = Diagonal(expEigenvals2)
@@ -105,14 +116,15 @@ function correlation(
 	#I'm not sure how to memory-manage this,
 	#so for now I'm just over-writing v many times
 
-	v = BLAS.gemv('C',evolve.O,psi) #N for no transpose
+	v = BLAS.gemv('C',eigsys.O,psi) #N for no transpose
 	
 	v = D2 * v #this is faster than -> v = BLAS.gemv('N',D2,v) 
-	v = BLAS.gemv('N',evolve.O,v) #C for conjugate transpose
-	v = BLAS.gemv('N',Op, v)
-	v = BLAS.gemv('C',evolve.O,v) #N for no transpose
+	v = BLAS.gemv('N',eigsys.O,v) #C for conjugate transpose
+	v = Op * v #faster in the case we have a sparse matrix
+	#v = BLAS.gemv('N',Op, v)
+	v = BLAS.gemv('C',eigsys.O,v) #N for no transpose
 	v = D1 * v
-	v = BLAS.gemv('N',evolve.O,v) #C for conjugate transpose
+	v = BLAS.gemv('N',eigsys.O,v) #C for conjugate transpose
 
 	corr = BLAS.dotc(len,psi,1,v,1)
 
@@ -130,26 +142,26 @@ Function to return a correlation at a certain type.
 """
 function correlation1pt(
 	rho :: Array{Complex{Float64},2},
-	evolve :: Evolver,
+	eigsys :: EigSys,
 	t :: Float64,
 	Op :: Array{Complex{Float64},2}
 	)
 
-	expEigenvals1 = [exp(-im * t * ev) for ev in evolve.evs]
-	expEigenvals2 = [exp(im * t * ev) for ev in evolve.evs]
+	expEigenvals1 = [exp(-im * t * ev) for ev in eigsys.evs]
+	expEigenvals2 = [exp(im * t * ev) for ev in eigsys.evs]
 
 	D1 = Diagonal(expEigenvals1)
 	D2 = Diagonal(expEigenvals2)
 
 	# Tr[ rho U*exp(-itD)*U^d*Op*U*exp(itD)*U^d ]
-	M = D2 * adjoint(evolve.O) #D2 * U^d
+	M = D2 * adjoint(eigsys.O) #D2 * U^d
 	#M = BLAS.gemm('C','N',D2,evolve.O)
-	M = BLAS.gemm('N','N',evolve.O,M) # U *
+	M = BLAS.gemm('N','N',eigsys.O,M) # U *
 	M = BLAS.gemm('N','N',Op,M)	# Op *
-	M = BLAS.gemm('C','N',evolve.O,M) #U^d *
+	M = BLAS.gemm('C','N',eigsys.O,M) #U^d *
 	M = D1* M #exp(-itD) *
 	#M = BLAS.gemm('C','N',D1,M)
-	M = BLAS.gemm('N','N',evolve.O,M) #U *
+	M = BLAS.gemm('N','N',eigsys.O,M) #U *
 	M = BLAS.gemm('N','N',rho,M) #rho *
 
 	return trace(M)
@@ -169,30 +181,30 @@ Function to return a correlation at a certain type.
 #perhaps I should just combine them
 function correlation2pt(
 	rho :: Array{Complex{Float64},2},
-	evolve :: Evolver,
+	eigsys :: EigSys,
 	t :: Float64,
 	Op1 :: Array{Complex{Float64},2},
 	Op2:: Array{Complex{Float64},2}
 	)
 
 
-	expEigenvals1 = [exp(-im * t * ev) for ev in evolve.evs]
-	expEigenvals2 = [exp(im * t * ev) for ev in evolve.evs]
+	expEigenvals1 = [exp(-im * t * ev) for ev in eigsys.evs]
+	expEigenvals2 = [exp(im * t * ev) for ev in eigsys.evs]
 
 	D1 = Diagonal(expEigenvals1)
 	D2 = Diagonal(expEigenvals2)
 
 	# Tr[ rho U*exp(-itD)*U^d*Op_1*U*exp(itD)*U^d Op_2]
 
-	M = BLAS.gemm('C','N',evolve.O, Op2)
+	M = BLAS.gemm('C','N',eigsys.O, Op2)
 	M = D2 * M #D2 * U
 	#M = BLAS.gemm('C','N',D2,evolve.O)
-	M = BLAS.gemm('N','N',evolve.O,M) # U *
+	M = BLAS.gemm('N','N',eigsys.O,M) # U *
 	M = BLAS.gemm('N','N',Op1,M)	# Op *
-	M = BLAS.gemm('C','N',evolve.O,M) #U^d *
+	M = BLAS.gemm('C','N',eigsys.O,M) #U^d *
 	M = D1* M #exp(-itD) *
 	#M = BLAS.gemm('C','N',D1,M)
-	M = BLAS.gemm('N','N',evolve.O,M) #U *
+	M = BLAS.gemm('N','N',eigsys.O,M) #U *
 	M = BLAS.gemm('N','N',rho,M) #rho *
 
 	return trace(M)
@@ -202,28 +214,28 @@ end
 Function to compute the thermal density matrix
 """
 function thermal_density_matrix(
-	evolve :: Evolver,
+	eigsys :: EigSys,
 	beta :: Float64
 	)
 	
-	boltzmann = [exp(-beta * ev) for ev in evolve.evs]
+	boltzmann = [exp(-beta * ev) for ev in eigsys.evs]
 	Z = sum(boltzmann)
 	D = (1/Z) * Diagonal(boltzmann)
 
-	M = D * adjoint(evolve.O)
-	M = BLAS.gemm('N','N',evolve.O,M)
+	M = D * adjoint(eigsys.O)
+	M = BLAS.gemm('N','N',eigsys.O,M)
 	return M
 end
 
 #for infinite temeperature, i.e. beta = 0
 function thermal_density_matrix(
-	evolve :: Evolver,
+	eigsys :: EigSys,
 	beta :: Int
 	)
 	if(beta != 0)
-		return thermal_density_matrix(evolve,Float64(beta))
+		return thermal_density_matrix(eigsys,Float64(beta))
 	end
-	Z =length(evolve.evs)
+	Z =length(eigsys.evs)
 	a = 1/Z
 	D = Matrix{ComplexF64}(Diagonal([a for i in 1:Z]))
 	return D
@@ -237,7 +249,7 @@ operator at each time, we can optimize this a bit.
 """
 function timeseries(
 	psi :: Array{Complex{Float64}},
-	evolve :: Evolver,
+	eigsys :: EigSys,
 	times :: Array{Float64},
 	Op1 :: Array{Complex{Float64},2},
 	Op2:: Array{Complex{Float64},2};
@@ -248,13 +260,13 @@ function timeseries(
 	# <psi| U D_m U^d Op_1 U D_p U^d Op_2|psi>
 	# (<psi| U) * D_m * (U^d Op_1 U) * D_p * (U^d Op_2 |psi>)
 
-	UdOp1U = BLAS.gemm('N','N',Op1,evolve.O)
-	UdOp1U = BLAS.gemm('C','N',evolve.O,UdOp1U)
+	UdOp1U = BLAS.gemm('N','N',Op1,eigsys.O)
+	UdOp1U = BLAS.gemm('C','N',eigsys.O,UdOp1U)
 
 	UdOp2psi =  BLAS.gemv('N',Op2,psi) 
-	UdOp2psi =  BLAS.gemv('C',evolve.O,UdOp2psi) 
+	UdOp2psi =  BLAS.gemv('C',eigsys.O,UdOp2psi) 
 
-	Udpsi = BLAS.gemv('C',evolve.O,psi)
+	Udpsi = BLAS.gemv('C',eigsys.O,psi)
 
 	corr_t = Array{Float64,2}(uninitialized, length(times),3)
 	for k in 1:length(times)
@@ -262,8 +274,8 @@ function timeseries(
 		if verbose
 			println("Time $(k)/$(length(times))")
 		end
-		expEigenvals_m = [exp(-im * t * ev) for ev in evolve.evs]
-		expEigenvals_p = [exp(im * t * ev) for ev in evolve.evs]
+		expEigenvals_m = [exp(-im * t * ev) for ev in eigsys.evs]
+		expEigenvals_p = [exp(im * t * ev) for ev in eigsys.evs]
 
 		D_m = Diagonal(expEigenvals_m)
 		D_p = Diagonal(expEigenvals_p)
@@ -287,7 +299,7 @@ at a list of times {t1,t2,...}.
 """
 function timeseries(
 	rho :: Array{Complex{Float64},2},
-	evolve :: Evolver,
+	eigsys :: EigSys,
 	times :: Array{Float64},
 	Op1 :: Array{Complex{Float64},2},
 	Op2:: Array{Complex{Float64},2};
@@ -300,12 +312,12 @@ function timeseries(
 	# Tr[ Op_2 rho    U exp(-it D) U^d  Op_1 U exp(it D) U^d]
 	# Tr[ exp(itD) * (U^d Op2 rho U) * exp(-itD) * (U^d*Op1*U)  ]
 
-	UdOp1U = BLAS.gemm('N','N',Op1,evolve.O)
-	UdOp1U = BLAS.gemm('C','N',evolve.O,UdOp1U)
+	UdOp1U = BLAS.gemm('N','N',Op1,eigsys.O)
+	UdOp1U = BLAS.gemm('C','N',eigsys.O,UdOp1U)
 
-	UdOp2rhoU = BLAS.gemm('N','N',rho,evolve.O)
+	UdOp2rhoU = BLAS.gemm('N','N',rho,eigsys.O)
 	UdOp2rhoU = BLAS.gemm('N','N',Op2,UdOp2rhoU)
-	UdOp2rhoU = BLAS.gemm('C','N',evolve.O,UdOp2rhoU)
+	UdOp2rhoU = BLAS.gemm('C','N',eigsys.O,UdOp2rhoU)
 
 	corr_t = Array{Float64}(uninitialized, length(times), 3)
 	for k in 1:length(times)
@@ -313,8 +325,8 @@ function timeseries(
 		if verbose
 			println("Time $(k)/$(length(times))")
 		end
-		expEigenvals_m = [exp(-im * t * ev) for ev in evolve.evs]
-		expEigenvals_p = [exp(im * t * ev) for ev in evolve.evs]
+		expEigenvals_m = [exp(-im * t * ev) for ev in eigsys.evs]
+		expEigenvals_p = [exp(im * t * ev) for ev in eigsys.evs]
 
 		D_m = Diagonal(expEigenvals_m)
 		D_p = Diagonal(expEigenvals_p)
@@ -343,7 +355,7 @@ operator at each time, we can optimize this a bit.
 function timeseries2(
 	psi :: Array{Complex{Float64}}, ###must be an eigenstate
 	E_psi :: Float64,
-	evolve :: Evolver,
+	eigsys :: EigSys,
 	times :: Array{Float64},
 	Op, #can be sparse
 	verbose :: Bool = false
@@ -352,7 +364,7 @@ function timeseries2(
 
 	Oppsi = Op * psi
 
-	O_sr = BLAS.gemv('C',evolve.O,Oppsi)
+	O_sr = BLAS.gemv('C',eigsys.O,Oppsi)
 	O_sr_abs = Array{Complex{Float64}}([abs2(x) for x in O_sr])
 
 
@@ -363,7 +375,7 @@ function timeseries2(
 			println("Time $(k)/$(length(times))")
 		end
 		exp_Es = exp(-im*t*E_psi)
-		expEigenvals = [exp(im * t * ev) *exp_Es for ev in evolve.evs]
+		expEigenvals = [exp(im * t * ev) *exp_Es for ev in eigsys.evs]
 
 		cor = BLAS.dotu(len,O_sr_abs,1,expEigenvals,1)
 		corr_t[k,1] = t

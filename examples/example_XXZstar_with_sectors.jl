@@ -42,7 +42,7 @@ println(abstract_hamiltonian)
 symmetries = Dict{String,Int64}("SzA" => 3,"K" => 3, "Z2B" => 1)
 println("Making basis for symmetry sectors: \n\t", symmetries)
 #make a basis with symmetries --- this can be a bit slow
-basis = make_basis(L,unitCellSize = a, syms=symmetries)
+basis = make_basis(L; unitCellSize = a, syms=symmetries)
 
 
 println("Basis size: ", length(basis.conj_classes))
