@@ -1,4 +1,4 @@
-#ED_Sectors
+# ED_Sectors
 
 ED_Sectors is a exact diagonalization code that is designed to be as painless as possible. Its main purpose is to diagonalize Hamiltonians for spin-1/2 chains, taking advantage of symmetries to speed up the computations. The code is optimized to have easy-to-use syntax and for convenience rather than speed; don't expect to get much beyond L = 20. 
 
