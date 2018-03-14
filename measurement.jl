@@ -35,6 +35,8 @@ function full_ED(H :: AbstractMatrix)
 end
 
 
+#thought: for a single-site operator, it's probably way 
+#better to compute the reduced density matrix
 """
 Function to return a correlation with no time evolution
 
@@ -42,9 +44,6 @@ Function to return a correlation with no time evolution
 * 'psi :: Array{ComplexF64}': the (normalized) state vector to measure
 * 'Op :: Array{Complex{Float64},2}': the operator to measure
 """
-#thought: for a single-site operator, it's probably way 
-#better to compute the reduced density matrix
-
 function correlation(
 	psi :: Array{Complex{Float64}},
 	Op :: Matrix
@@ -58,7 +57,8 @@ function correlation(
 	return corr
 end
 
-
+#thought: for a single-site operator, it's probably way 
+#better to compute the reduced density matrix
 """
 Function to return a correlation (no time evolution)
 
@@ -66,9 +66,6 @@ Function to return a correlation (no time evolution)
 * 'psi :: Array{ComplexF64}': the (normalized) state vector to measure
 * 'Op :: Array{Complex{Float64},2}': the operator to measure
 """
-#thought: for a single-site operator, it's probably way 
-#better to compute the reduced density matrix
-
 function correlation1pt(
 	psi :: Array{Complex{Float64}},
 	op :: OP,
@@ -121,15 +118,14 @@ end
 
 
 
-
+#eventually put in functionality that works for any subset of the states,
+#not just contiguous ones
 """
 Computes the reduced density matrix for a state psi.
 #Argument 
 * 'psi :: Array{ComplexF64}': the (normalized) state vector to measure
 * 'l :: Int': the number of sites we want to have left
 """
-#eventually put in functionality that works for any subset of the states,
-#not just contiguous ones
 function reduce_density_matrix(
 	phi :: Array{Complex{Float64}},
 	l :: Int
@@ -155,18 +151,17 @@ function reduce_density_matrix(
 end
 
 
-
+#untested
 """
 Computes the entanglement entropy S(l/L) for a state psi. 
 """
-#untested
 function entanglement_entropy(
 	psi :: Array{Complex{Float64}},
 	l :: Int;
 	epsilon = 10e-15#hardcoded tolerance for numerical error
 	)
 
-	rho = reduce_density_matrix(psi,l)
+	rho = Matrix(reduce_density_matrix(psi,l))
 	#println(size(rho))
 	#println(rho)
 	eigsys = EigSys(rho)
@@ -229,12 +224,11 @@ function transition_finder(
 
 end
 
-
+#verified against mathematica code
+#this is easy to read rather than fast, but it shouldn't matter much
 """
 Computes the R-statistic for a spectrum. Must be in a single symmetry sector. For integrable systems, R ~ 0.386. For GOE level-statistics, R ~0.5295. 
 """
-#verified against mathematica code
-#this is easy to read rather than fast, but it shouldn't matter much
 function r_statistic(
 	eigenvalues :: Array{Float64}
 	)

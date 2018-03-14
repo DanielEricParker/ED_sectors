@@ -236,21 +236,34 @@ function make_terms(
 	pbc :: Bool,
 	terms :: TERMS)
 
+
+	termsEnd = pbc ? L-1 : L - length(terms.operatorNames)
+	sites = collect(terms.startsite : terms.spacing : termsEnd)
+
+	return make_terms_array(L,pbc,terms,sites)
+end
+
+
+function make_terms_array(
+	L :: Int,
+	pbc :: Bool,
+	terms :: TERMS,
+	sites :: Array{Int}
+	)
+
 	#turn the terms in to abstract terms
 	#abstract terms are tuple (prefactor, [Op names])
-	allowed_operator_names = ['I','X','Y','Z','+','-']
+	allowed_operator_names = ['I','X','Y','Z','+','-','N','C','D','A','B']
 
 	for op_name in terms.operatorNames
 		if !in(op_name, allowed_operator_names)
 			error("Unsupported operator name \"", op_name, "\" in term, ", terms)
 		end
-	end
+	end 
 	opNames = [string(ch) for ch in terms.operatorNames]
 
-	termEnd = pbc ? L-1 : L - length(opNames)
-
 	termsArray = []
-	for i in terms.startsite : terms.spacing : termEnd
+	for i in sites
 		operators = [OP(op_name,(i+j-1)%L) for (j,op_name) in enumerate(opNames)]
 		#remove the Identity operators since we don't need those
 		operators = filter( (op) -> op.name != "I", operators)

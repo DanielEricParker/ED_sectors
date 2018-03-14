@@ -8,6 +8,7 @@ using Printf
 using IterativeEigensolvers
 using DelimitedFiles
 using SparseArrays
+using LinearAlgebra
 
 #Kludgey way to get tests
 testing = false

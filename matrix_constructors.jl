@@ -244,6 +244,15 @@ pauli_z = sparse([1,2],[1,2],[1.0,-1.0])
 pauli_plus = sparse([0 2.0; 0 0])
 pauli_minus = sparse([0 0; 2.0 0])
 
+
+
+###also do spinless fermions
+
+cdag_op = sparse([0 2.0; 0 0])
+c_op = sparse([0 0; 2.0 0])
+number_op = sparse([1.0 0.0; 0.0 0.0])
+
+
  
 """
 Returns the correct Pauli matrix for the name
@@ -259,6 +268,12 @@ function get_pauli_matrix(name :: String)
             return pauli_plus
         elseif name == "-"
             return pauli_minus
+        elseif name == "C" #destroy spinless fermions
+            return c_op
+        elseif name == "D" #C dagger
+            return cdag_op
+        elseif name == "N"
+            return number_op
         else 
             error("Unsupported operator name: ",name)
         end
@@ -320,3 +335,78 @@ function construct_matrix_full(basis :: Basis, abstract_op :: ABSTRACT_OP)
 
     return H
 end
+
+
+
+
+"""
+Makes a Hamiltonian from fermion bilinears. Only work for number-conserving Hamiltonians
+#Argument 
+* 'basis :: Baiss': the basis for the spin chain
+* 'abstract_op :: HAMILTONIAN': the abstract operator to implement
+"""
+function construct_matrix_fermion_biliners(basis :: Basis, abstract_op :: ABSTRACT_OP)
+    dim = basis.L
+    H = spzeros(ComplexF64,dim,dim)
+
+    #loop over terms in the Hamiltonian
+    for term in abstract_op.terms
+        op = term.operator
+        #is it the number operator?
+        if length(op) == 1 && op[1].name == "N"
+            i = op[1].site
+            j = i
+        else
+            #check ordering
+            if op[1].name == "D" && op[2].name == "C"
+                i = op[1].site
+                j = op[2].site
+            elseif op[1].name == "C" && op[2].name == "D"
+                i = op[2].site
+                j = op[1].site
+            else
+                error("Unknown term:", term)
+            end
+        end
+        # println(term)
+        # println("H[",i,",",j, "] = ", term.prefactor)
+        H[i+1,j+1]  = term.prefactor
+    end
+
+    return H
+end
+
+
+# """
+# Makes a Hamiltonian for a single mode of bosons.
+# #Argument 
+# * 'N :: Int': the maximum number of modes possible
+# * 'abstract_op :: HAMILTONIAN': the abstract operator to implement
+# """
+
+# function construct_matrix_boson_mode(basis :: Basis, abstract_op :: ABSTRACT_OP)
+
+#     dim = N
+#     H = spzeros(ComplexF64, dim, dim)
+
+#     #loop over terms in the Hamiltonian
+#     for term in abstract_op.terms
+#         op = term.operator
+
+#         if length(op) == 1 && op[1].name == "I"
+#             #this is silly, but I don't understand how sparse matrix constructors work
+#             H += term.prefactor*sparse(1:N,1:N,1.0)
+#         elseif length(op) == 1 && op[1].name == "A"
+#             #raising operator
+#             H += term.prefactor*sparse(1:N-1,2:N,1.0,N,N)
+#         elseif length(op) == 1 && op[1].name == "B"
+#             #lowering operator
+#             H += term.prefactor*sparse(1:N-1,2:N,1.0,N,N)
+#         elseif length(op) == 1 && op[1].name == "N"
+#             #number operator
+#             H += term.prefactor*sparse(1:N,1:N,N:-1:1,N,N)
+#         else
+#             error("Unknown term:", term)
+#         end
+#     return H
+# end

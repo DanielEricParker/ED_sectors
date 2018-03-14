@@ -47,6 +47,46 @@ end
 Base.show(io::IO, eigsys :: EigSys) = print(io, "Evolver[] of size ", length(eigsys.evs))
 
 
+
+"""
+Function to evolve a state for a period of time.
+* 'psi :: Array{Complex{Float64},1}': the state to evolve
+* 'evolve :: Evolver': an evolver for our Hamiltonian
+* 't :: Float64': the time to measure at
+"""
+function evolve_state(
+	psi :: Array{Complex{Float64},1},
+	eigsys :: EigSys,
+	t :: Float64
+	)
+
+
+	#expEigenvals1 = [exp(-im * t * ev) for ev in eigsys.evs]
+	expEigenvals2 = [exp(im * t * ev) for ev in eigsys.evs]
+
+	#D1 = Diagonal(expEigenvals1)
+	D2 = Diagonal(expEigenvals2)
+
+	#<psi|Op(t)|psi>
+	#	= <psi|exp(-itH) * Op * exp(itH)|psi>
+	#	= <psi|U*exp(-itD)*U^d*Op*U*exp(itD)*U^d|psi> 
+
+	#to make this maximally efficient, one should 
+	#take advantage of the sparseness of the diagonal matrices
+	#but let's not bother for now
+	#
+	#I'm not sure how to memory-manage this,
+	#so for now I'm just over-writing v many times
+
+	v = BLAS.gemv('C',eigsys.O,psi) #N for no transpose
+	
+	v = D2 * v #this is faster than -> v = BLAS.gemv('N',D2,v) 
+	v = BLAS.gemv('N',eigsys.O,v) #C for conjugate transpose
+
+	return v
+end	
+
+
 """
 Function to return a correlation at a certain type.
 

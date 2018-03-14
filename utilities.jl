@@ -92,7 +92,6 @@ end
 """
 Checks if two bases are the same. Useful for debugging.
 """
-
 function check_same_basis_debug(
 	basis1,
 	basis2

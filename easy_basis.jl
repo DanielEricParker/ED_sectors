@@ -108,7 +108,6 @@ end
 """Returns a function which computes translated versions of states
 and gives their phase factors.
 """
-
 function make_translation_function(L :: Int, a :: Int,  K :: Int)
 	#L - size of the spin chain
 	#a - size of the unit cell
