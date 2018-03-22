@@ -86,7 +86,12 @@ function evolve_state(
 	return v
 end	
 
-
+#thought: for a single-site operator, it's probably way 
+#better to compute the reduced density matrix
+#for now, let's leverage the Hamiltonian constructor to 
+#make a full operator, even though that's a bit dumb
+#
+#in particular, this makes no use of sparsity
 """
 Function to return a correlation at a certain type.
 
@@ -97,12 +102,6 @@ Function to return a correlation at a certain type.
 * 'Op :: OP': the operator to measure
 * 'factor :: Float64': the scale on the operator
 """
-#thought: for a single-site operator, it's probably way 
-#better to compute the reduced density matrix
-#for now, let's leverage the Hamiltonian constructor to 
-#make a full operator, even though that's a bit dumb
-#
-#in particular, this makes no use of sparsity
 function correlation1pt(
 	psi :: Array{Complex{Float64},1},
 	eigsys :: EigSys,
@@ -118,6 +117,9 @@ function correlation1pt(
 	return correlation(psi,eigsys,t,Op_mat)
 end
 
+
+#thought: for a single-site operator, it's probably way 
+#better to compute the reduced density matrix
 """
 Function to return a correlation at a certain type.
 
@@ -127,9 +129,6 @@ Function to return a correlation at a certain type.
 * 't :: Float64': the time to measure at
 * 'Op :: Array{Complex{Float64},2}': the operator to measure
 """
-#thought: for a single-site operator, it's probably way 
-#better to compute the reduced density matrix
-
 function correlation(
 	psi :: Array{Complex{Float64}},
 	eigsys :: EigSys,
@@ -208,7 +207,8 @@ function correlation1pt(
 
 end	
 
-
+#this is essentially the same as before
+#perhaps I should just combine them
 """
 Function to return a correlation at a certain type.
 * 'rho :: Array{Complex{Float64},2}': the (normalized) density matrix
@@ -217,8 +217,6 @@ Function to return a correlation at a certain type.
 * 'Op :: Array{Complex{Float64},2}': the first operator
 * 'Op :: Array{Complex{Float64},2}': the second operator
 """
-#this is essentially the same as before
-#perhaps I should just combine them
 function correlation2pt(
 	rho :: Array{Complex{Float64},2},
 	eigsys :: EigSys,
@@ -308,7 +306,7 @@ function timeseries(
 
 	Udpsi = BLAS.gemv('C',eigsys.O,psi)
 
-	corr_t = Array{Float64,2}(uninitialized, length(times),3)
+	corr_t = Array{Float64,2}(undef, length(times),3)
 	for k in 1:length(times)
 		t = times[k]
 		if verbose
@@ -359,7 +357,7 @@ function timeseries(
 	UdOp2rhoU = BLAS.gemm('N','N',Op2,UdOp2rhoU)
 	UdOp2rhoU = BLAS.gemm('C','N',eigsys.O,UdOp2rhoU)
 
-	corr_t = Array{Float64}(uninitialized, length(times), 3)
+	corr_t = Array{Float64}(undef, length(times), 3)
 	for k in 1:length(times)
 		t = times[k]
 		if verbose
@@ -383,15 +381,14 @@ function timeseries(
 
 end
 
-
+#turns out there should be a much better way to do this with many fewer
+#matrix multiplications
 """
 Function to compute a two-point function <psi|O(t)O(0)|psi>
 for an *eigenstate* |psi>
 at a list of times {t1,t2,...}. Since we're doing the same
 operator at each time, we can optimize this a bit.
 """
-#turns out there should be a much better way to do this with many fewer
-#matrix multiplications
 function timeseries2(
 	psi :: Array{Complex{Float64}}, ###must be an eigenstate
 	E_psi :: Float64,
@@ -408,7 +405,7 @@ function timeseries2(
 	O_sr_abs = Array{Complex{Float64}}([abs2(x) for x in O_sr])
 
 
-	corr_t = Array{Float64,2}(uninitialized, length(times),3)
+	corr_t = Array{Float64,2}(undef, length(times),3)
 	for k in 1:length(times)
 		t = times[k]
 		if verbose

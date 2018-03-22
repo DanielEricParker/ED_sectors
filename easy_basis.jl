@@ -489,17 +489,20 @@ function make_basis(
 	unitCellSize :: Int = 1, 			#self-expanatory
 	# validity_syms :: Dict{String,Int} =  Dict{String,Int}(),#symmetries that restrict which states are valid
 	# #name => sector, e.g. translation sector 3 is "K" => 3
-	syms :: Dict{String,Int} =  Dict{String,Int}()
+	syms :: Dict{String,Int} =  Dict{String,Int}(),
+	constraint :: Function = identity
 	)
-	
+
 	#if we're not using symmetries, then we don't have to compute anything
 	#but let's put in placeholders anyway
-	if (length(syms) == 0)
+	if (length(syms) == 0 && constraint === identity)
 		return 	Basis(L, 
 			Dict{UInt64,BasisVector}(),
 			Dict{UInt64,ConjClass}(),
 			Dict{String,Int}())
 	end
+
+
 
 	#separte out the symemtries that simply restrict the Hilbert space
 	#hardcoded names for now, as only a few are implemented
@@ -510,7 +513,13 @@ function make_basis(
 	symmetries = filter( kv -> in(kv[1],symmetries_names), syms)
 
     #get a function to figure out which states are vald
-    is_valid_state = get_valid_state_function(L,unitCellSize,validity_syms)
+	if constraint === identity
+	    is_valid_state = get_valid_state_function(L,unitCellSize,validity_syms)
+	else 
+		is_valid_state_built_in = get_valid_state_function(L,unitCellSize,validity_syms)
+		is_valid_state = x -> (constraint(x,L) && is_valid_state_built_in(x))
+	end
+
 
     #figure out which symmetry function we want to use
    	make_orbit = make_easy_orbit_function(L,unitCellSize,symmetries)
@@ -554,6 +563,11 @@ function make_basis(
             end
 	    end
     end
+
+    if !(constraint === identity)
+    	symmetries["constrained"] = 1
+    end
+
 	return Basis(L,basis, reps, symmetries)
 end
 
@@ -587,3 +601,86 @@ if testing5
 end
 
 
+# ##This is a separate method for now, but it's basically the same thing, so it should be integrated eventually.
+# """
+# Produces a basis from its symmetry information and a function that constrains the Hilbert space.
+# #Arguments
+# * 'L :: Int': the number of sites
+# * 'unitCellSize :: Int': the number of sites per unit cell
+# * 'syms :: Dict{String,Int}': a dictionary of symmetries with their sector names, e.g. the translation sector 3 is "K" => 3
+# * 'constraint :: Function': a function (state, L) -> bool to determine if a given state satisfies a constraint
+# """
+# function make_basis(
+# 	L :: Int;  						#number of lattice sites
+# 	unitCellSize :: Int = 1, 			#self-expanatory
+# 	# validity_syms :: Dict{String,Int} =  Dict{String,Int}(),#symmetries that restrict which states are valid
+# 	constraint :: Function = 
+# 	syms :: Dict{String,Int} =  Dict{String,Int}(),
+# 	)
+	
+# 	#if we're not using symmetries, then we don't have to compute anything
+# 	#but let's put in placeholders anyway
+# 	if (length(syms) == 0)
+# 		return 	Basis(L, 
+# 			Dict{UInt64,BasisVector}(),
+# 			Dict{UInt64,ConjClass}(),
+# 			Dict{String,Int}())
+# 	end
+
+# 	#separte out the symemtries that simply restrict the Hilbert space
+# 	#hardcoded names for now, as only a few are implemented
+# 	validity_syms_names = ["Sz","SzA","SzB"]
+# 	symmetries_names = ["K","Z2A","Z2B","Inv"]
+
+# 	validity_syms = filter( kv -> in(kv[1],validity_syms_names), syms)
+# 	symmetries = filter( kv -> in(kv[1],symmetries_names), syms)
+
+#     #get a function to figure out which states are vald
+#     is_valid_state_built_in = get_valid_state_function(L,unitCellSize,validity_syms)
+
+#     is_valid_state = x -> (constraint(x,L) && is_valid_state_built_in(x))
+
+#     #figure out which symmetry function we want to use
+#    	make_orbit = make_easy_orbit_function(L,unitCellSize,symmetries)
+
+#     # #count how many basis elements we have
+#     num_basis_elements :: Int = 0
+
+#     #initialize our Dicts
+# 	basis = Dict{UInt64,BasisVector}()
+#     reps = Dict{UInt64,ConjClass}()
+
+#     #loop over states in this sector
+#     for s in 0:(2^L)-1
+#     	x = UInt64(s)
+#     	if is_valid_state(x) && !haskey(basis,x)
+        	
+#         	Nullable_orbit = make_orbit(x)
+
+
+#         	if !isnull(Nullable_orbit)
+#   				orbit = get(Nullable_orbit)
+#   				#println(x)
+#   				#println(orbit)
+#   				(norm_x,conj_class_x,O_x) = (orbit.norm, orbit.representative, orbit.elements)
+
+#   				#we have to correct for the possibility that the representative
+#   				#doesn't have phase factor 1
+#   				#in principle clever indexing could prevent that from happening
+#   				pf_rep = O_x[conj_class_x]
+# 				for (gx, pf_x) in O_x
+# 					#if is_valid_state(gx)
+# 					basis[gx] = BasisVector(conj_class_x, zchop(pf_rep/pf_x))
+# 					#end
+# 				end
+
+#                 #offset by 1 for 1-indexing
+#                 reps[conj_class_x] =  ConjClass(num_basis_elements+1,norm_x)
+
+#                 #increment number of basis elements
+#                 num_basis_elements += 1
+#             end
+# 	    end
+#     end
+# 	return Basis(L,basis, reps, symmetries)
+# end

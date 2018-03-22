@@ -1,0 +1,39 @@
+\documentclass{article}
+\usepackage{braket}
+\usepackage{amsmath,amssymb}
+\usepackage{mathtools}
+
+\begin{document}
+
+Suppose we have a Hilbert space with elements labelled $\{\ket{s}\}$. Suppose $G$ is a group with action $g \mapsto \chi(g) U_g$ for $\chi(g) \in \mathbb{C}, U_g$ an operator. Here $\chi(g)$ depends on the representation. For instance, for translation on $n$ sites, $G = \mathbb{Z}_N$, and $r \mapsto e^{-i k r} T_r$.
+
+Let's understand how we can restrict to a certain symmetry class. Suppose that we have a Hamiltonian $H$ with $[H,U_g] = 0$ for all $g \in G$. Then we should restrict to equivalence classes of states which are eigenvalues of the $U_g$'s. Define
+\begin{equation}
+	\ket{[s]} = \frac{1}{\sqrt{N_s \|G\|}} \sum_{g \in G} \chi(g) U_g\ket{s}
+\end{equation}
+where 
+\begin{equation}
+	N_s = \sum_{g \in G, g(s) = s} \chi(g).
+\end{equation}
+$N_s$ is almost the stabilizer of $s$, but due to the factors it can take on other values --- or be zero, in which case there may not be any equivalence class for that symmetry and eigenvalue. For instance, $\ket{a} = \ket{\uparrow\uparrow\uparrow\uparrow}$ has $k=1$ equivalence class $\ket{a} - i \ket{a} - \ket{a} + i \ket{a} = 0$, so we should not consider it.
+
+Now let's think about how to construct the Hamiltonian. Consider $H = \sum_j \mathcal{O}_j$. WLOG, we can consider each $\mathcal{O}_j$ and then sum the results. We therefore want to efficiently compute $\Braket{[r]|\mathcal{O}|[s]}$. The action of $\mathcal{O}$ is 
+
+\begin{align*}
+	\mathcal{O} \ket{[s]}
+	\ &=\ \frac{1}{\sqrt{N_s \|G\|}} \sum_{g \in G} \chi(g) U_g \mathcal{O} \ket{s}
+	\ &=\ \frac{1}{\sqrt{N_s \|G\|}} \sum_{g \in G} \chi(g) U_g \mathcal{O}_{sr}\ket{r'}\\
+\end{align*}
+so if $r' \in [r]$ with $h\cdot r = r'$, then $U(h) \ket{r} = \ket{r'}$ 
+\begin{align*}
+	\Braket{[r]|\mathcal{O}|[s]}
+	&= \Bra{[r]}\mathcal{O}_{sr} \frac{1}{\sqrt{N_s \|G\|}} \sum_{g \in G} \chi(g) U_g \ket{r'}\\
+	&= \Bra{[r]} \mathcal{O}_{sr} \frac{1}{\sqrt{N_s \|G\|}} \sum_{g \in G} \chi(g) U_g U_h\ket{r}\\ 
+	&= \mathcal{O}_{sr} \sqrt{\frac{N_r}{N_s}} \frac{1}{\chi(h)}\Bra{[r]}  \frac{1}{\sqrt{N_r \|G\|}} \sum_{gh \in G} \chi(g)\chi(h) U_{gh} \ket{r} 
+\end{align*}
+In other words,
+\begin{equation}
+	\Braket{[r]|\mathcal{O}|[s]} = \mathcal{O}_{sr} \sqrt{\frac{N_r}{N_s}} \chi(h^{-1}).
+\end{equation}
+
+\end{document}

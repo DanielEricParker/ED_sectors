@@ -170,11 +170,7 @@ function construct_matrix(
     else 
         construct_matrix_sym(basis,abstract_op)
     end
-
 end
-
-
-
 
 function construct_matrix_sym(basis :: Basis, abstract_op :: ABSTRACT_OP)
     #L - length of the spin chain
