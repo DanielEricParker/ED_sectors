@@ -6,7 +6,11 @@
 
 #and a way to convert HAMILTONIAN + BASIS into an actual matrix
 
+#### This whole file has gotten super messy and should be cleaned up
+#### I think there should be many fewer types
+
 #####################################################################
+
 
 
 
@@ -154,6 +158,19 @@ struct ABSTRACT_OP
     	L :: Int,
     	name :: String,
     	terms :: Array{TERM})= ABSTRACT_OP(L,name,false,terms)
+
+    #this is stupidly messy and shows that I need to refactor this code
+    ABSTRACT_OP(
+    	L :: Int,
+    	operator_strng :: String,
+    	starting_site :: Int;
+    	pbc = false
+    	) = ABSTRACT_OP(L,operator_strng,pbc,
+    		make_terms_array(L, 
+	    		false, 
+	    		TERMS(1.0,operator_strng,0,0),
+	    		[starting_site])
+    	)
 end
 
 function Base.show(io::IO, H::ABSTRACT_OP)

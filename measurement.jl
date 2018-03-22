@@ -34,6 +34,26 @@ function full_ED(H :: AbstractMatrix)
 	return EigSys(Matrix(H)) #convert to dense, because really there's no point in this for a sparse matrix. it's the same speed I believe.
 end
 
+"""
+Function to make an observable with nice syntax.
+
+#Argument 
+* 'basis :: BASIS': the basis we're working with
+* 'op :: String': the name for the operator we want to measure, e.g. "ZZ"
+* 'site :: Int': starting site for the operator. 
+"""
+function observable(
+	basis :: Basis,
+	op :: String,
+	site :: Int
+	)
+	abstract_op  = ABSTRACT_OP(basis.L,op,site; pbc = true)
+	op_mat = construct_matrix(basis, abstract_op)
+	return op_mat
+end
+
+
+
 
 #thought: for a single-site operator, it's probably way 
 #better to compute the reduced density matrix
@@ -127,12 +147,13 @@ Computes the reduced density matrix for a state psi.
 * 'l :: Int': the number of sites we want to have left
 """
 function reduce_density_matrix(
-	phi :: Array{Complex{Float64}},
+	phi,#no type to support both sparse and normal vectors: fix
 	l :: Int
 	)
 	new_dim = 2^l
 	phi_reshape = reshape(phi,div(length(phi),new_dim),new_dim)
 
+	println(typeof(phi_reshape))
 	rho_reduced = [
 			#come back and think if this should actually always be real
 			real(dot(phi_reshape[:,i],phi_reshape[:,j]))
@@ -156,13 +177,14 @@ end
 Computes the entanglement entropy S(l/L) for a state psi. 
 """
 function entanglement_entropy(
-	psi :: Array{Complex{Float64}},
+	psi, #no type to support both sparse and normal vectors: fix
 	l :: Int;
 	epsilon = 10e-15#hardcoded tolerance for numerical error
 	)
 
 	rho = Matrix(reduce_density_matrix(psi,l))
-	#println(size(rho))
+
+	println(size(rho))
 	#println(rho)
 	eigsys = EigSys(rho)
 
@@ -190,7 +212,7 @@ end
 function measure_EE(
 	L :: Int,
 	psi :: Array{Complex{Float64},1})
-	EE = Array{Float64,2}(uninitialized,L+1,2)
+	EE = Array{Float64,2}(undef,L+1,2)
 
 	for k in 1:(floor(Int,L/2)+1)
 		ee_k = entanglement_entropy(psi,k;epsilon = 10e-15)
@@ -234,7 +256,7 @@ function r_statistic(
 	)
 	#must be sorted
 	eigenvalues = sort(eigenvalues)
-	rs = Array{Float64}(uninitialized, length(eigenvalues)-2)
+	rs = Array{Float64}(undef, length(eigenvalues)-2)
 
 	for i in 1:length(rs)
 		delta_na = eigenvalues[i+1]-eigenvalues[i]

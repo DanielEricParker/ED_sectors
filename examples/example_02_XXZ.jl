@@ -69,6 +69,9 @@ function main()
 
 	println("\nThe lowest 10 eigenvalues are:")
 	println(eigs)
+
+	println(observable(basis,"ZXZ",3))
+
 end
 
 main()
