@@ -47,7 +47,7 @@ function observable(
 	op :: String,
 	site :: Int
 	)
-	abstract_op  = ABSTRACT_OP(basis.L,op,site; pbc = true)
+	abstract_op  = ABSTRACT_OP(basis.L,OP(op,site))
 	op_mat = construct_matrix(basis, abstract_op)
 	return op_mat
 end
@@ -92,8 +92,6 @@ function correlation1pt(
 	factor :: Float64,
 	basis :: Basis
 	)
-	#	this is dumb. perhaps Basis should contain L?
-	#L = Int(round(log(2,length(psi))))
 	len = length(psi)
 
 	abstract_O = ABSTRACT_OP(basis.L,op)

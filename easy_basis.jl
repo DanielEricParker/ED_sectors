@@ -164,18 +164,18 @@ function make_Z2B_function(
 	end
 end
 
-if testing5
-	println("\nTesting 'make_Z2B_function'. ")
-	Z2B_fcn = make_Z2B_function(10,1)
-	Z2B_fcn_2 = make_Z2B_function(10,-1)
-	x = UInt64(3)
-	pf = Complex(1.0)
-	println(bin(x),", ", pf)
-	(gx,pf2) = Z2B_fcn(x,pf)
-	println(bin(gx),", ", pf2)
-	(gx,pf2) = Z2B_fcn_2(x,pf)
-	println(bin(gx),", ", pf2)
-end
+# if testing5
+# 	println("\nTesting 'make_Z2B_function'. ")
+# 	Z2B_fcn = make_Z2B_function(10,1)
+# 	Z2B_fcn_2 = make_Z2B_function(10,-1)
+# 	x = UInt64(3)
+# 	pf = Complex(1.0)
+# 	println(bin(x),", ", pf)
+# 	(gx,pf2) = Z2B_fcn(x,pf)
+# 	println(bin(gx),", ", pf2)
+# 	(gx,pf2) = Z2B_fcn_2(x,pf)
+# 	println(bin(gx),", ", pf2)
+# end
 
 
 
@@ -186,7 +186,7 @@ function make_Z2A_function(
 	L :: Int,
 	Z2A :: Int
 	)
-	
+
 	flipper :: UInt64 = UInt64(sum([1 << k for k in 0:2:L-2]))
 
 	if Z2A == 1
@@ -203,18 +203,56 @@ function make_Z2A_function(
 	end
 end
 
-if testing5
-	println("\nTesting 'make_Z2A_function'. ")
-	Z2A_fcn = make_Z2A_function(10,1)
-	Z2A_fcn_2 = make_Z2A_function(10,-1)
-	x = UInt64(3)
-	pf = Complex(1.0)
-	println(bin(x),", ", pf)
-	(gx,pf2) = Z2A_fcn(x,pf)
-	println(bin(gx),", ", pf2)
-	(gx,pf2) = Z2A_fcn_2(x,pf)
-	println(bin(gx),", ", pf2)
+# if testing5
+# 	println("\nTesting 'make_Z2A_function'. ")
+# 	Z2A_fcn = make_Z2A_function(10,1)
+# 	Z2A_fcn_2 = make_Z2A_function(10,-1)
+# 	x = UInt64(3)
+# 	pf = Complex(1.0)
+# 	println(bin(x),", ", pf)
+# 	(gx,pf2) = Z2A_fcn(x,pf)
+# 	println(bin(gx),", ", pf2)
+# 	(gx,pf2) = Z2A_fcn_2(x,pf)
+# 	println(bin(gx),", ", pf2)
+# end
+
+"""Returns a function which computes a version of a state flipped on all sites.
+"""
+function make_spin_flip_function(
+	L :: Int,
+	Z2 :: Int
+	)
+	
+	flipper :: UInt64 = UInt64(sum([1 << (k) for k in 0:L-1]))
+	# println("flipper: ", string(flipper,base=2))
+
+	if Z2 == 1
+		return 	function (x :: UInt64, pf :: ComplexF64)
+					gx :: UInt64 = xor(x, flipper)
+
+					return (gx,pf)
+				end
+	else 
+		return 	function (x :: UInt64, pf :: ComplexF64)
+							gx :: UInt64 = xor(x,flipper)
+							pf *= -1
+							return (gx,pf)
+						end
+	end
 end
+
+# if testing6
+# 	println("\nTesting 'make_Z2A_function'. ")
+# 	Z2A_fcn = make_spin_flip_function(10,1)
+# 	Z2A_fcn_2 = make_spin_flip_function(10,-1)
+# 	x = UInt64(3)
+# 	pf = Complex(1.0)
+# 	println(string(x,base=2),", ", pf)
+# 	(gx,pf2) = Z2A_fcn(x,pf)
+# 	println(string(gx,base=2),", ", pf2)
+# 	(gx,pf2) = Z2A_fcn_2(x,pf)
+# 	println(string(gx,base=2),", ", pf2)
+# end
 
 
 """Returns a function which computes a version of a state
@@ -345,6 +383,9 @@ function make_easy_orbit_function(
 				sub_gp_size = 2
 			elseif name == "Inv"
 				sym_fcn = make_Inversion_function(L,sector,unitCellSize)
+				sub_gp_size = 2
+			elseif name == "Z2"
+				sym_fcn = make_spin_flip_function(L,sector)
 				sub_gp_size = 2
 			end
 			G_size *= sub_gp_size
@@ -507,7 +548,7 @@ function make_basis(
 	#separte out the symemtries that simply restrict the Hilbert space
 	#hardcoded names for now, as only a few are implemented
 	validity_syms_names = ["Sz","SzA","SzB"]
-	symmetries_names = ["K","Z2A","Z2B","Inv"]
+	symmetries_names = ["K","Z2","Z2A","Z2B","Inv"]
 
 	validity_syms = filter( kv -> in(kv[1],validity_syms_names), syms)
 	symmetries = filter( kv -> in(kv[1],symmetries_names), syms)

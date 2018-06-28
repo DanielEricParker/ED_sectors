@@ -132,7 +132,7 @@ Function to return a correlation at a certain type.
 function correlation(
 	psi :: Array{Complex{Float64}},
 	eigsys :: EigSys,
-	t :: Float64,
+	t,
 	Op :: AbstractMatrix
 	)
 	len = length(psi)
@@ -203,7 +203,7 @@ function correlation1pt(
 	M = BLAS.gemm('N','N',eigsys.O,M) #U *
 	M = BLAS.gemm('N','N',rho,M) #rho *
 
-	return trace(M)
+	return tr(M)
 
 end	
 
@@ -245,7 +245,7 @@ function correlation2pt(
 	M = BLAS.gemm('N','N',eigsys.O,M) #U *
 	M = BLAS.gemm('N','N',rho,M) #rho *
 
-	return trace(M)
+	return tr(M)
 end
 
 """
@@ -370,7 +370,7 @@ function timeseries(
 		D_p = Diagonal(expEigenvals_p)
 
 		M = D_p * UdOp2rhoU * D_m * UdOp1U
-		cor = trace(M)#trace(M)
+		cor = tr(M)#tr(M)
 
 		corr_t[k,1] = t
 		corr_t[k,2] = real(cor)
@@ -409,7 +409,7 @@ function timeseries2(
 	for k in 1:length(times)
 		t = times[k]
 		if verbose
-			println("Time $(k)/$(length(times))")
+			taprintln("Time $(k)/$(length(times))")
 		end
 		exp_Es = exp(-im*t*E_psi)
 		expEigenvals = [exp(im * t * ev) *exp_Es for ev in eigsys.evs]
