@@ -5,10 +5,12 @@
 
 using Nullables
 using Printf
-using IterativeEigensolvers
+using IterativeSolvers
 using DelimitedFiles
 using SparseArrays
 using LinearAlgebra
+using Arpack
+using Statistics
 
 #Kludgey way to get tests
 testing = false

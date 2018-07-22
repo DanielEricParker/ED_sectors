@@ -28,7 +28,7 @@ struct EigSys
 	Returns an EigSys.
 	"""
 	function EigSys(H :: Matrix)
-		eigensystem = eigfact(Matrix(H))
+		eigensystem = eigen(Matrix(H))
 		new(real(eigensystem.values),eigensystem.vectors)
 	end
 
