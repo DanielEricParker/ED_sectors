@@ -34,9 +34,6 @@ function is_Null_VEC(v :: VEC)
     return abs(v.factor) < 1e-15 
 end
 
-
-
-
 struct OP
     #type for storing factor * operator_name
     #such as "S_z", "S_x", "S_+"
@@ -49,12 +46,6 @@ if testing
     #TEST OP
     println(OP("X",3))
 end
-
-
-
-
-
-
 
 struct TERM
     #type for storing a term in a Hamiltonian
@@ -77,7 +68,7 @@ Base.show(io::IO, t::TERM) = print(io,  t.prefactor, "*", t.operator)
 if testing2
     testTerm = TERM(0.5,[OP("+",3),OP("-",4),OP("-",5)])
     println(testTerm)
-    println(typeof(testTerm.operator))
+	println(typeof(testTerm.operator))
 end
 
 

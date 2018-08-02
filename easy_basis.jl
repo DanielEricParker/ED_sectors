@@ -18,7 +18,7 @@ struct BasisVector
     conj_class :: UInt64 ##conjugacy class for the element
     phase_factor :: ComplexF64 ##phase factor to translate
 end
-Base.show(io::IO, bv::BasisVector) = print(io, "BV[",bin(bv.conj_class), ", ", bv.phase_factor, "]")
+Base.show(io::IO, bv::BasisVector) = print(io, "BV[",bv.conj_class, ", ", bv.phase_factor, "]")
 
 
 
@@ -131,11 +131,11 @@ if testing5
 	println("Testing 'make_translation_function'. ")
 	tr_fcn = make_translation_function(10,2,1)
 	println(typeof(tr_fcn))
-	x = UInt64(3)
+	xxxx = UInt64(3)
 	pf = Complex(1.0)
-	println(bin(x),", ", pf)
-	(gx,pf2) = tr_fcn(x,pf)
-	println(bin(gx),", ", pf2)
+	println(digits(xxxx,base=2,pad=10),", ", pf)
+	(gx,pf2) = tr_fcn(xxxx,pf)
+	println(digits(gx,base=2,pad=10),", ", pf2)
 end	
 
 
@@ -164,18 +164,18 @@ function make_Z2B_function(
 	end
 end
 
-# if testing5
-# 	println("\nTesting 'make_Z2B_function'. ")
-# 	Z2B_fcn = make_Z2B_function(10,1)
-# 	Z2B_fcn_2 = make_Z2B_function(10,-1)
-# 	x = UInt64(3)
-# 	pf = Complex(1.0)
-# 	println(bin(x),", ", pf)
-# 	(gx,pf2) = Z2B_fcn(x,pf)
-# 	println(bin(gx),", ", pf2)
-# 	(gx,pf2) = Z2B_fcn_2(x,pf)
-# 	println(bin(gx),", ", pf2)
-# end
+if testing5
+	println("\nTesting 'make_Z2B_function'. ")
+	Z2B_fcn = make_Z2B_function(5,1)
+	Z2B_fcn_2 = make_Z2B_function(5,-1)
+	xxx = UInt64(0)
+	pf = Complex(1.0)
+	println("x:\t",digits(xxx,base=2,pad=5),", ", pf)
+	(gx,pf2) = Z2B_fcn(xxx,pf)
+	println("gx:\t",digits(gx,base=2,pad=5),", ", pf2)
+	(gx,pf2) = Z2B_fcn_2(xxx,pf)
+	println("gx2:\t",digits(gx,base=2,pad=5),", ", pf2)
+end
 
 
 
@@ -187,7 +187,7 @@ function make_Z2A_function(
 	Z2A :: Int
 	)
 
-	flipper :: UInt64 = UInt64(sum([1 << k for k in 0:2:L-2]))
+	flipper :: UInt64 = UInt64(sum([1 << k for k in 0:2:L-1]))
 
 	if Z2A == 1
 		return 	function (x :: UInt64, pf :: ComplexF64)
@@ -203,18 +203,26 @@ function make_Z2A_function(
 	end
 end
 
-# if testing5
-# 	println("\nTesting 'make_Z2A_function'. ")
-# 	Z2A_fcn = make_Z2A_function(10,1)
-# 	Z2A_fcn_2 = make_Z2A_function(10,-1)
-# 	x = UInt64(3)
-# 	pf = Complex(1.0)
-# 	println(bin(x),", ", pf)
-# 	(gx,pf2) = Z2A_fcn(x,pf)
-# 	println(bin(gx),", ", pf2)
-# 	(gx,pf2) = Z2A_fcn_2(x,pf)
-# 	println(bin(gx),", ", pf2)
-# end
+if testing5
+	println("\nTesting 'make_Z2A_function'. ")
+	Z2A_fcn = make_Z2A_function(5,1)
+	Z2A_fcn_2 = make_Z2A_function(5,-1)
+	xxxx = UInt64(0)
+	pf = Complex(1.0)
+	println("x:\t",digits(xxxx,base=2,pad=5),", ", pf)
+	(gx,pf2) = Z2A_fcn(xxxx,pf)
+	println("gx:\t",digits(gx,base=2,pad=5),", ", pf2)
+	(gx,pf2) = Z2A_fcn_2(xxxx,pf)
+	println("gx:\t", digits(gx,base=2,pad=5),", ", pf2)
+
+	# Z2A_fcn = make_Z2A_function(6,1)
+	# Z2A_fcn_2 = make_Z2A_function(6,-1)
+	# xxxx = UInt64(0)
+	# pf = Complex(1.0)
+	# println(string(xxxx,base=2),", ", pf)
+	# (gx,pf2) = Z2A_fcn(xxxx,pf)
+	# println(string(gx,base=2),", ", pf2)
+end
 
 """Returns a function which computes a version of a state flipped on all sites.
 """
@@ -582,6 +590,8 @@ function make_basis(
 
         	if !isnull(Nullable_orbit)
   				orbit = get(Nullable_orbit)
+
+        		#println("state: "*string(digits(x,2,4))*"\t orbit:"*string(orbit))
   				#println(x)
   				#println(orbit)
   				(norm_x,conj_class_x,O_x) = (orbit.norm, orbit.representative, orbit.elements)

@@ -85,6 +85,8 @@ function export_data(
     end
     #export as CSV
     writedlm(fileName,data,", ")
+
+    return fileName
 end
 
 

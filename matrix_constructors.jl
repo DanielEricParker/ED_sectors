@@ -184,10 +184,13 @@ function construct_matrix_sym(basis :: Basis, abstract_op :: ABSTRACT_OP)
     #iterate over conjugacy classes
     for (x,cc_x) in basis.conj_classes
 
+
+
         #loop over terms in the Hamiltonian
         for term in abstract_op.terms
             #find |y> = H |x> ####ASSUMPTION: this is a state, not superposition
             y = apply_operators(VEC(1.0,x),term)
+
 
             #check if the element exists --- it could have zero norm
             if ~is_Null_VEC(y) && haskey(basis.get_conj_class,y.state)
@@ -197,6 +200,8 @@ function construct_matrix_sym(basis :: Basis, abstract_op :: ABSTRACT_OP)
 
                 #check if upper diagonal
                 if cc_y.index >= cc_x.index
+
+                    #println("x: "*string(digits(x,2,4))*", cc: $(cc_x), y: "*string(digits(y.state,2,4))*", cc: $(cc_y), factor: $(y.factor)")
                     #compute the matrix element --- see Note
                     h_xy = zchop(sqrt(cc_y.norm/cc_x.norm) * bv_y.phase_factor * y.factor)
                     H[cc_x.index,cc_y.index] += h_xy
@@ -277,6 +282,60 @@ end
 
 
 
+###this is actually backwards from the convention for other basese
+# """
+# Quickly makes a Hamiltonian for the full basis with no symmetry constraints. 
+
+# #Argument 
+# * 'L :: Int': the length of the spin chain
+# * 'abstract_Ham :: HAMILTONIAN': the abstract operator to implement
+# """
+# function construct_matrix_full(basis :: Basis, abstract_op :: ABSTRACT_OP)
+
+#     dim = 2^basis.L
+#     H = spzeros(ComplexF64,dim,dim)
+
+#     #loop over terms in the Hamiltonian
+#     for term in abstract_op.terms
+
+#         #start with the Identity
+#         term_matrix = sparse(I,1,1)
+#         last_pos = -1
+
+#         #loop over terms, i.e. 2.0 XZX -> [X,Z,X]
+#         for op in term.operator
+#             pos = op.site
+#             #how many ones in the middle?
+#             pos_shift = pos-last_pos-1
+#             #get the pauli matrix
+#             site_mat = get_pauli_matrix(op.name)
+
+#             #tensor product
+#             if pos_shift == 0
+#                 term_matrix = kron(term_matrix,site_mat)
+#             else 
+#                 shift_size = 2^pos_shift
+#                 term_matrix = kron(term_matrix,kron(sparse(I, shift_size, shift_size),site_mat))
+#             end
+#             last_pos = pos
+#         end
+
+#         #fill out matrix to 2^L x 2^L
+#         pos_shift = basis.L - 1 - last_pos
+#         if pos_shift > 0
+#             shift_size = 2^pos_shift
+#             term_matrix = kron(term_matrix, sparse(I,shift_size,shift_size))
+#         end
+        
+#         #multiply by the prefactor
+#         term_matrix *= term.prefactor
+
+#         #add the term
+#         H += term_matrix
+#     end
+
+#     return H
+# end
 
 """
 Quickly makes a Hamiltonian for the full basis with no symmetry constraints. 
@@ -307,10 +366,10 @@ function construct_matrix_full(basis :: Basis, abstract_op :: ABSTRACT_OP)
 
             #tensor product
             if pos_shift == 0
-                term_matrix = kron(term_matrix,site_mat)
+                term_matrix = kron(site_mat,term_matrix)
             else 
                 shift_size = 2^pos_shift
-                term_matrix = kron(term_matrix,kron(sparse(I, shift_size, shift_size),site_mat))
+                term_matrix = kron(kron(site_mat,sparse(I, shift_size, shift_size)),term_matrix)
             end
             last_pos = pos
         end
@@ -319,7 +378,7 @@ function construct_matrix_full(basis :: Basis, abstract_op :: ABSTRACT_OP)
         pos_shift = basis.L - 1 - last_pos
         if pos_shift > 0
             shift_size = 2^pos_shift
-            term_matrix = kron(term_matrix, sparse(I,shift_size,shift_size))
+            term_matrix = kron(sparse(I,shift_size,shift_size),term_matrix)
         end
         
         #multiply by the prefactor
