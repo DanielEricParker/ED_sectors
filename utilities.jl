@@ -5,6 +5,30 @@
 #####################################################################
 
 
+#################### DEBUGGING #########################
+
+"""
+    @debug arg
+
+Runs a command only if the global DEBUG is set to true.
+
+#Examples
+```jldoctest
+julia> x = 3
+julia> DEBUG = true
+julia> @debug println("Variable x:", x)
+3
+julia> DEBUG = false
+julia> @debug println("Variable x:", x)
+
+```
+"""
+macro debug(arg)
+    return DEBUG ? arg : nothing
+end
+
+
+
 
 #################### Display/pretty printing ##########################
 
@@ -16,8 +40,9 @@ Pretty printing for spin-1/2 states.
 function display_states(
 	s::Array{UInt64}
 	)
-    println(map(bin,s))
+    println(map(st -> string(st,base=2),s))
 end
+
 
 
 ################### General little useful functions #############
@@ -89,37 +114,22 @@ function export_data(
     return fileName
 end
 
-
-
-"""
-Checks if two bases are the same. Useful for debugging.
-"""
-function check_same_basis_debug(
-	basis1,
-	basis2
-	)
-
-    for k in collect(keys(basis1.get_conj_class))
-        bv1 = basis1.get_conj_class[k]
-        bv2 = basis2.get_conj_class[k]
-        if (bv1.conj_class != bv2.conj_class) || (abs(bv1.phase_factor - bv2.phase_factor) >= 10e-5)
-            println(k,", ", (bv1.conj_class != bv2.conj_class),", ", abs(bv1.phase_factor - bv2.phase_factor) >= 10e-5)
-            println(bv1)
-            println(bv2)
+function make_filename(
+    name,
+    parameters
+    )
+    fileName = name
+    for (param,value) in parameters
+        if typeof(value) == Int
+            fileName *= string("_", param, "_", value)
+        elseif typeof(value) == Float64 
+             fileName *= @sprintf "_%s_%.4f" param value
+        elseif typeof(value) == String
+            fileName *= string("_", param, "_", value)
         end
     end
+    fileName *= ".csv"
 
-
-    println(length(basis1.conj_classes))
-    println(length(basis2.conj_classes))
-
-    for k in collect(keys(basis1.conj_classes))
-        cc1 = basis1.conj_classes[k]
-        cc2 = basis2.conj_classes[k]
-        if cc1.norm != cc2.norm
-            println("Bad cc:", k)
-            println(cc1)
-            println(cc2)
-        end
-    end
+    return fileName
 end
+

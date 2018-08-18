@@ -8,6 +8,7 @@
 include("../main.jl")
 
 
+
 #Define a function to create a symbolic Ising Hamiltonian
 """
 
@@ -33,7 +34,7 @@ end
 #we wrap our code in a function so it compiles first
 function main()
 	println("Setting parameters...")
-	L = 10
+	L = 8
 	g = 0.8
 	println("L = $(L), g= $(0.8)")
 

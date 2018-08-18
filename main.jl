@@ -11,6 +11,7 @@ using SparseArrays
 using LinearAlgebra
 using Arpack
 using Statistics
+using Test
 
 #Kludgey way to get tests
 testing = false
