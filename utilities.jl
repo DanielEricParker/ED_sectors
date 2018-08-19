@@ -4,32 +4,6 @@
 
 #####################################################################
 
-
-#################### DEBUGGING #########################
-
-"""
-    @debug arg
-
-Runs a command only if the global DEBUG is set to true.
-
-#Examples
-```jldoctest
-julia> x = 3
-julia> DEBUG = true
-julia> @debug println("Variable x:", x)
-3
-julia> DEBUG = false
-julia> @debug println("Variable x:", x)
-
-```
-"""
-macro debug(arg)
-    return DEBUG ? arg : nothing
-end
-
-
-
-
 #################### Display/pretty printing ##########################
 
 """
@@ -40,25 +14,12 @@ Pretty printing for spin-1/2 states.
 function display_states(
 	s::Array{UInt64}
 	)
-    println(map(st -> string(st,base=2),s))
+    println(map(st -> digits(st,base=2),s))
 end
-
 
 
 ################### General little useful functions #############
 
-
-# function numchop(x :: Complex{Float64}, epsilon = 10e-13)
-#     #x - complex number
-#     #returns - x with small real and imaginary parts removed
-#     a = real(x)
-#     b = imag(x)
-
-#     w = abs(a) < epsilon ? 0 : a
-#     z = abs(b) < epsilon ? 0 : b 
-
-#     return complex(w,z)
-# end
 
 #borrowed from https://github.com/jlapeyre/ZChop.jl/blob/master/src/ZChop.jl
 
@@ -78,6 +39,9 @@ zchop(x) = applicable(start,x) ? map(zchop,x) : x
 ############### Exporting and File IO ######################
 
 """
+
+    export_data(data,name,parameters)
+
 Exports arrays to csv files, with parameters in the filename. Particularly useful when varying 1 or more parameters.
 #Arguments
 * 'data :: Array{Float64, N} where N': data to export, an Array
@@ -114,6 +78,16 @@ function export_data(
     return fileName
 end
 
+"""
+    
+    make_filename(name,parameters)
+
+Given the prefix 'name' and the parameter/value pairs, generates a filename for the data.
+
+#Arguments
+* 'name :: String': name/prefix for the data, e.g. "XXZ_eigenvalues"
+* 'parameters :: Array{Tuple{String,Number}}': Array of Tuples (parameter, value), e.g. ("Delta", 0.6)
+"""
 function make_filename(
     name,
     parameters
