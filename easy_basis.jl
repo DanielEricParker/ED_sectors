@@ -21,7 +21,6 @@ end
 Base.show(io::IO, bv::BasisVector) = print(io, "BV[",bv.conj_class, ", ", bv.phase_factor, "]")
 
 
-
 struct ConjClass
     #type for describing the conjugacy class of a basis element
     index :: Int64 #index of this element in the Hamiltonian matrix
@@ -225,7 +224,7 @@ function make_Inversion_function(
 	
 	cell = UInt64((2^a) -1)
 
-	#this seems fairly inefficient
+	#this seems fairly inefficient, but I can't think of a better way right now
 	if Inv == 1
 		return 	function (x :: UInt64, pf :: ComplexF64)
 					gx = UInt64(0)
@@ -442,6 +441,9 @@ struct Basis
 end
 
 
+
+###eventually it would be good to come back to this and optimize for efficiency,
+#e.g. make the inner loops into their own funcitons
 """
 	make_basis(L; [unitCellSize=a, syms=Symmetries_Dict, constraint=constraint_function])
 
@@ -461,16 +463,10 @@ function make_basis(
 	constraint :: Function = identity
 	):: Basis
 
-	# #if we're not using symmetries, then we don't have to compute anything
-	# #but let's put in placeholders anyway
-	# if (length(syms) == 0 && constraint === identity)
-	# 	return 	Basis(L, 
-	# 		Dict{UInt64,BasisVector}(),
-	# 		Dict{UInt64,ConjClass}(),
-	# 		Dict{String,Int}())
-	# end
+	@assert L % unitCellSize == 0 "The unit cell size, $(unitCellSize), does not divide the number of spins, $(L)"
 
-	#separte out the symemtries that simply restrict the Hilbert space
+
+	#separate out the symemtries that simply restrict the Hilbert space
 	#hardcoded names for now, as only a few are implemented
 	validity_syms_names = ["Sz","SzA","SzB"]
 	symmetries_names = ["K","Z2","Z2A","Z2B","Inv"]

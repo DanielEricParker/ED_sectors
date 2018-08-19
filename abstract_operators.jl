@@ -22,7 +22,7 @@ struct VEC
     factor :: Complex{Float64}
     state :: UInt64
 end
-Base.show(io::IO, v::VEC) = print(io, "s[",v.factor, " * ", bin(v.state), "]")
+Base.show(io::IO, v::VEC) = print(io, "s[",v.factor, " * ", digits(v.state,base=2), "]")
 
 if testing
     #TEST VEC
@@ -31,7 +31,7 @@ end
 
 function is_Null_VEC(v :: VEC)
     #tests if we ended up with zero = VEC(0,0)
-    return abs(v.factor) < 1e-15 
+    return abs(v.factor) < zeps
 end
 
 struct OP

@@ -8,10 +8,17 @@
 
 ###################### Operators and operator application ######################
 
+"""
 
-function apply_S_plus(v::VEC, i :: Int)
-    #x - state
-    #i - place to apply the operator 
+    apply_S_plus(v,i)
+
+#Arguments
+*'v: VEC': a basis vector VEC(prefactor, state)
+*'i: Int': the index of the spin to apply the operator to, 0 <= i <= L
+
+Given a basis vector |v>, return S_i^+ |v>, which is another basis vector.
+"""
+function apply_S_plus(v::VEC, i :: Int)::VEC
     if ((v.state >> i) & 1 == 0)
         return VEC(2*v.factor, xor(v.state,1 << i))
     else
@@ -19,22 +26,18 @@ function apply_S_plus(v::VEC, i :: Int)
     end 
 end
 
-if testing
 
-    #TEST apply_S_plus
-    v = VEC(3.1,5)
-    w = VEC(3.1,6)
-    println("Testing S plus")
-    println(v)
-    println(apply_S_plus(v,1))
-    println(w)
-    println(apply_S_plus(w,1))
-    println(is_Null_VEC(apply_S_plus(w,1)))
-end
+"""
 
-function apply_S_minus(v::VEC,i::Int)
-    #x - state
-    #i - place to apply the operator 
+    apply_S_minus(v,i)
+
+#Arguments
+*'v: VEC': a basis vector VEC(prefactor, state)
+*'i: Int': the index of the spin to apply the operator to, 0 <= i <= L
+
+Given a basis vector |v>, return S_i^- |v>, which is another basis vector.
+"""
+function apply_S_minus(v::VEC,i::Int)::VEC
     if ((v.state >> i) & 1 == 1)
         return VEC(2*v.factor, xor(v.state,1 << i))
     else
@@ -42,17 +45,18 @@ function apply_S_minus(v::VEC,i::Int)
     end 
 end
 
-if testing
-    println("Testing S minus")
-    println(v)
-    println(apply_S_minus(v,1))
-    println(w)
-    println(apply_S_minus(w,1))
-    println(is_Null_VEC(apply_S_minus(w,1)))
-end
 
+"""
 
-function apply_S_z(v :: VEC, i :: Int)
+    apply_S_z(v,i)
+
+#Arguments
+*'v: VEC': a basis vector VEC(prefactor, state)
+*'i: Int': the index of the spin to apply the operator to, 0 <= i <= L
+
+Given a basis vector |v>, return S_i^z |v>, which is another basis vector.
+"""
+function apply_S_z(v :: VEC, i :: Int):: VEC
     #x - state
     #i - place to apply the operator 
     if ((v.state >> i) & 1 == 1)
@@ -62,37 +66,32 @@ function apply_S_z(v :: VEC, i :: Int)
     end
 end
 
-if testing
-    println("Testing S_z")
-    println(v)
-    println(apply_S_z(v,1))
-    println(w)
-    println(apply_S_z(w,1))
-    println(is_Null_VEC(apply_S_z(w,1)))
-end
+"""
 
+    apply_S_x(v,i)
 
+#Arguments
+*'v: VEC': a basis vector VEC(prefactor, state)
+*'i: Int': the index of the spin to apply the operator to, 0 <= i <= L
 
-function apply_S_x(v :: VEC, i :: Int)
-    #x - state
-    #i - place to apply the operator 
+Given a basis vector |v>, return S_i^x |v>, which is another basis vector.
+"""
+function apply_S_x(v :: VEC, i :: Int)::VEC
     return VEC(v.factor,xor(v.state,1 << i))
 end
 
-if testing
-    println("Testing S_x")
-    println(v)
-    println(apply_S_x(v,1))
-    println(w)
-    println(apply_S_x(w,1))
-    println(is_Null_VEC(apply_S_x(w,1)))
-end
 
+"""
 
-####not verified
-function apply_S_y(v :: VEC, i :: Int)
-    #v - Vector
-    #i - place to apply the operator 
+    apply_S_y(v,i)
+
+#Arguments
+*'v: VEC': a basis vector VEC(prefactor, state)
+*'i: Int': the index of the spin to apply the operator to, 0 <= i <= L
+
+Given a basis vector |v>, return S_i^y |v>, which is another basis vector.
+"""
+function apply_S_y(v :: VEC, i :: Int)::VEC
     flipped = xor(v.state, 1 << i)
     factor = im*v.factor
     if ((v.state >> i) & 1 == 1) #if v[i] == up
@@ -101,24 +100,18 @@ function apply_S_y(v :: VEC, i :: Int)
     return VEC(factor,flipped)
 end
 
-if testing
-    println("Testing S_y")
-    println(v)
-    println(apply_S_y(v,1))
-    println(w)
-    println(apply_S_y(w,1))
-    println(is_Null_VEC(apply_S_y(w,1)))
-end
 
+"""
 
+    apply_operators(v,t)
 
+#Arguments
+*'v::VEC': a vector VEC(prefactor,basis vector) to apply the term to
+*'t::TERM': a single term from a Hamiltonian to apply
 
-
-
-function apply_operators(v :: VEC, t :: TERM)
-    # v vector
-    # list of operators to apply to various sites
-    # only works for operators whose output is a single basis vector
+Given a basis vector |v> and a term (i.e. operator) t, returns t | v>. For spin-1/2 with the X,Y,Z,+,- operators, the return vector is always another basis vector, rather than superposition thereof, which simplifies things.
+"""
+function apply_operators(v :: VEC, t :: TERM)::VEC
     for op in t.operator
         if is_Null_VEC(v)
             return v
@@ -142,21 +135,13 @@ function apply_operators(v :: VEC, t :: TERM)
     return v
 end
 
-if testing2
-    ops = [OP("X",1),OP("X",2)]
-    ops4 = [OP("-",5)]
-    v = VEC(1.0,15)
-    println("Testing Applying Multiple Operators")
-    println(v)
-    map(println,ops)
-    println(apply_operators(v,TERM(2.0,ops)))
-    println(apply_operators(v,TERM(3.0,ops4)))
-end
-
 ################ Hamiltonian constructor for a given basis ##########################
 
 """
-Construts a matrix from an abstract operator for the given basis.
+
+    construct_matrix(basis, abstract_op)
+
+Constructs a matrix from an abstract operator for the given basis. Returns a sparse matrix.
 """
 function construct_matrix(
     basis :: Basis, 
@@ -172,6 +157,12 @@ function construct_matrix(
     end
 end
 
+"""
+
+    construct_matrix_sym(basis, abstract_op)
+
+Internal function to construct a Hamiltonian with symmetries.
+"""
 function construct_matrix_sym(basis :: Basis, abstract_op :: ABSTRACT_OP)
     #L - length of the spin chain
     #basis - basis Dict
@@ -184,13 +175,11 @@ function construct_matrix_sym(basis :: Basis, abstract_op :: ABSTRACT_OP)
     #iterate over conjugacy classes
     for (x,cc_x) in basis.conj_classes
 
-
-
         #loop over terms in the Hamiltonian
         for term in abstract_op.terms
             #find |y> = H |x> ####ASSUMPTION: this is a state, not superposition
+            #this works for X,Y,Z,+,-, but doesn't necessarily hold for everything
             y = apply_operators(VEC(1.0,x),term)
-
 
             #check if the element exists --- it could have zero norm
             if ~is_Null_VEC(y) && haskey(basis.get_conj_class,y.state)
@@ -220,6 +209,8 @@ function construct_matrix_sym(basis :: Basis, abstract_op :: ABSTRACT_OP)
     return H
     #Making it Hermitian makes diagonalization ridiculously slow for unclear reasons right now
     # #maybe a bug?
+    ## see https://discourse.julialang.org/t/unexpectedly-slow-performance-of-eigs-with-a-hermitian-view/13701
+
     # return Hermitian(H,:U)
 end 
 
@@ -236,27 +227,26 @@ end
 
 ###define Pauli operators concretely
 
-pauli_1 = sparse([1,2],[1,2],[1.0,1.0])
-pauli_x = sparse([1,2],[2,1],[1.0,1.0])
-pauli_y = sparse([1,2],[2,1],[1.0*im,-1.0*im])
-pauli_z = sparse([1,2],[1,2],[1.0,-1.0])
+const pauli_1 = sparse([1,2],[1,2],[1.0,1.0])
+const pauli_x = sparse([1,2],[2,1],[1.0,1.0])
+const pauli_y = sparse([1,2],[2,1],[1.0*im,-1.0*im])
+const pauli_z = sparse([1,2],[1,2],[1.0,-1.0])
 
 
-pauli_plus = sparse([0 2.0; 0 0])
-pauli_minus = sparse([0 0; 2.0 0])
-
+const pauli_plus = sparse([0 2.0; 0 0])
+const pauli_minus = sparse([0 0; 2.0 0])
 
 
 ###also do spinless fermions
 
-cdag_op = sparse([0 2.0; 0 0])
-c_op = sparse([0 0; 2.0 0])
-number_op = sparse([1.0 0.0; 0.0 0.0])
+const cdag_op = sparse([0 2.0; 0 0])
+const c_op = sparse([0 0; 2.0 0])
+const number_op = sparse([1.0 0.0; 0.0 0.0])
 
 
  
 """
-Returns the correct Pauli matrix for the name
+Returns the correct Pauli matrix for the name. Really this should a hardcoded dictionary, but its essentially the same and there's not that many of them.
 """
 function get_pauli_matrix(name :: String)
         if name == "X"
@@ -281,68 +271,11 @@ function get_pauli_matrix(name :: String)
 end
 
 
-
-###this is actually backwards from the convention for other basese
-# """
-# Quickly makes a Hamiltonian for the full basis with no symmetry constraints. 
-
-# #Argument 
-# * 'L :: Int': the length of the spin chain
-# * 'abstract_Ham :: HAMILTONIAN': the abstract operator to implement
-# """
-# function construct_matrix_full(basis :: Basis, abstract_op :: ABSTRACT_OP)
-
-#     dim = 2^basis.L
-#     H = spzeros(ComplexF64,dim,dim)
-
-#     #loop over terms in the Hamiltonian
-#     for term in abstract_op.terms
-
-#         #start with the Identity
-#         term_matrix = sparse(I,1,1)
-#         last_pos = -1
-
-#         #loop over terms, i.e. 2.0 XZX -> [X,Z,X]
-#         for op in term.operator
-#             pos = op.site
-#             #how many ones in the middle?
-#             pos_shift = pos-last_pos-1
-#             #get the pauli matrix
-#             site_mat = get_pauli_matrix(op.name)
-
-#             #tensor product
-#             if pos_shift == 0
-#                 term_matrix = kron(term_matrix,site_mat)
-#             else 
-#                 shift_size = 2^pos_shift
-#                 term_matrix = kron(term_matrix,kron(sparse(I, shift_size, shift_size),site_mat))
-#             end
-#             last_pos = pos
-#         end
-
-#         #fill out matrix to 2^L x 2^L
-#         pos_shift = basis.L - 1 - last_pos
-#         if pos_shift > 0
-#             shift_size = 2^pos_shift
-#             term_matrix = kron(term_matrix, sparse(I,shift_size,shift_size))
-#         end
-        
-#         #multiply by the prefactor
-#         term_matrix *= term.prefactor
-
-#         #add the term
-#         H += term_matrix
-#     end
-
-#     return H
-# end
-
 """
-Quickly makes a Hamiltonian for the full basis with no symmetry constraints. 
 
-#Argument 
-* 'L :: Int': the length of the spin chain
-* 'abstract_Ham :: HAMILTONIAN': the abstract operator to implement
+    construct_matrix_full(basis, abstract_op)
+
+An internal method to quickly make an operator for the full basis with no symmetry constraints. 
 """
 function construct_matrix_full(basis :: Basis, abstract_op :: ABSTRACT_OP)
 
@@ -393,9 +326,13 @@ end
 
 
 
-
+#UNTESTED!
 """
+
+    construct_matrix_fermion_biliners(basis, abstract_op)
+
 Makes a Hamiltonian from fermion bilinears. Only work for number-conserving Hamiltonians
+
 #Argument 
 * 'basis :: Baiss': the basis for the spin chain
 * 'abstract_op :: HAMILTONIAN': the abstract operator to implement
@@ -431,6 +368,7 @@ function construct_matrix_fermion_biliners(basis :: Basis, abstract_op :: ABSTRA
     return H
 end
 
+#UNTESTED!
 
 # """
 # Makes a Hamiltonian for a single mode of bosons.
