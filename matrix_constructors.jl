@@ -6,17 +6,41 @@
 
 
 
+"""
+
+    VEC(factor,state)
+
+A type for storing a prefactor * basis_state.
+"""
+struct VEC
+    
+    factor :: Complex{Float64}
+    state :: UInt64
+end
+Base.show(io::IO, v::VEC) = print(io, "s[",v.factor, " * ", digits(v.state,base=2), "]")
+
+"""
+
+    is_Null_VEC(vec)
+
+Tests if 'vec' is the zero vector to numerical precision. Mostly used for internal testing.
+"""
+function is_Null_VEC(v :: VEC)
+    #tests if we ended up with zero = VEC(0,0)
+    return abs(v.factor) < zeps
+end
+
 ###################### Operators and operator application ######################
 
 """
 
     apply_S_plus(v,i)
 
-#Arguments
-*'v: VEC': a basis vector VEC(prefactor, state)
-*'i: Int': the index of the spin to apply the operator to, 0 <= i <= L
-
 Given a basis vector |v>, return S_i^+ |v>, which is another basis vector.
+
+# Arguments
+- 'v: VEC': a basis vector VEC(prefactor, state)
+- 'i: Int': the index of the spin to apply the operator to, 0 <= i <= L
 """
 function apply_S_plus(v::VEC, i :: Int)::VEC
     if ((v.state >> i) & 1 == 0)
@@ -50,9 +74,9 @@ end
 
     apply_S_z(v,i)
 
-#Arguments
-*'v: VEC': a basis vector VEC(prefactor, state)
-*'i: Int': the index of the spin to apply the operator to, 0 <= i <= L
+# Arguments
+- 'v: VEC': a basis vector VEC(prefactor, state)
+- 'i: Int': the index of the spin to apply the operator to, 0 <= i <= L
 
 Given a basis vector |v>, return S_i^z |v>, which is another basis vector.
 """
@@ -70,11 +94,12 @@ end
 
     apply_S_x(v,i)
 
-#Arguments
-*'v: VEC': a basis vector VEC(prefactor, state)
-*'i: Int': the index of the spin to apply the operator to, 0 <= i <= L
 
 Given a basis vector |v>, return S_i^x |v>, which is another basis vector.
+
+# Arguments
+- 'v: VEC': a basis vector VEC(prefactor, state)
+- 'i: Int': the index of the spin to apply the operator to, 0 <= i <= L
 """
 function apply_S_x(v :: VEC, i :: Int)::VEC
     return VEC(v.factor,xor(v.state,1 << i))
@@ -85,11 +110,12 @@ end
 
     apply_S_y(v,i)
 
-#Arguments
-*'v: VEC': a basis vector VEC(prefactor, state)
-*'i: Int': the index of the spin to apply the operator to, 0 <= i <= L
 
 Given a basis vector |v>, return S_i^y |v>, which is another basis vector.
+
+# Arguments
+- 'v: VEC': a basis vector VEC(prefactor, state)
+- 'i: Int': the index of the spin to apply the operator to, 0 <= i <= L
 """
 function apply_S_y(v :: VEC, i :: Int)::VEC
     flipped = xor(v.state, 1 << i)
@@ -105,13 +131,14 @@ end
 
     apply_operators(v,t)
 
-#Arguments
-*'v::VEC': a vector VEC(prefactor,basis vector) to apply the term to
-*'t::TERM': a single term from a Hamiltonian to apply
-
 Given a basis vector |v> and a term (i.e. operator) t, returns t | v>. For spin-1/2 with the X,Y,Z,+,- operators, the return vector is always another basis vector, rather than superposition thereof, which simplifies things.
+
+# Arguments
+- 'v::VEC': a vector VEC(prefactor,basis vector) to apply the term to
+- 't::TERM_INTERNAL': a single term from a Hamiltonian to apply
+
 """
-function apply_operators(v :: VEC, t :: TERM)::VEC
+function apply_operators(v :: VEC, t :: TERM_INTERNAL)::VEC
     for op in t.operator
         if is_Null_VEC(v)
             return v
@@ -214,17 +241,6 @@ function construct_matrix_sym(basis :: Basis, abstract_op :: ABSTRACT_OP)
     # return Hermitian(H,:U)
 end 
 
-if testing2
-    println("Testing making the Hamiltonian from the full basis")
-    abstract_hamiltonian = make_XXZ_operators_new(4,0.8)
-   	#println(abstract_hamiltonian)
-    H2 = make_Hamiltonian(4,basisFull,abstract_hamiltonian)
-    println(H1 == H2)
-end
-
-
-
-
 ###define Pauli operators concretely
 
 const pauli_1 = sparse([1,2],[1,2],[1.0,1.0])
@@ -270,7 +286,7 @@ function get_pauli_matrix(name :: String)
         end
 end
 
-
+#formally untested, but this has been verified against other code from matlab, and a few other things
 """
 
     construct_matrix_full(basis, abstract_op)
@@ -333,9 +349,9 @@ end
 
 Makes a Hamiltonian from fermion bilinears. Only work for number-conserving Hamiltonians
 
-#Argument 
-* 'basis :: Baiss': the basis for the spin chain
-* 'abstract_op :: HAMILTONIAN': the abstract operator to implement
+# Argument s
+- 'basis :: Basis': the basis for the spin chain
+- 'abstract_op :: HAMILTONIAN': the abstract operator to implement
 """
 function construct_matrix_fermion_biliners(basis :: Basis, abstract_op :: ABSTRACT_OP)
     dim = basis.L

@@ -11,14 +11,6 @@ using SparseArrays
 using LinearAlgebra
 using Arpack
 using Statistics
-using Test
-
-#Kludgey way to get tests
-testing = false
-testing2 = false
-testing3 = false
-testing4 = false
-testing5 = false
 
 ##################### Import everything #################
 

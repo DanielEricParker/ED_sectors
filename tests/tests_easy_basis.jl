@@ -1,7 +1,3 @@
-include("../main.jl")
-
-using Test
-
 @testset "Testing easy_basis.jl" begin
 	@testset "Testing measure_N_up" begin
 		# println("Testing N_up")

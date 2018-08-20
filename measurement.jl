@@ -84,11 +84,11 @@ Function to return a correlation (no time evolution)
 
 #Argument 
 * 'psi :: Array{ComplexF64}': the (normalized) state vector to measure
-* 'Op :: Array{Complex{Float64},2}': the operator to measure
+* 'SOP :: Array{Complex{Float64},2}': the operator to measure
 """
 function correlation1pt(
 	psi :: Array{Complex{Float64}},
-	op :: OP,
+	op :: SOP,
 	factor :: Float64,
 	basis :: Basis
 	)
@@ -112,7 +112,7 @@ Function to compute n-point correlation functions for a state psi.
 """
 function correlation_npt(
 	psi :: Array{Complex{Float64}},
-	Ops :: Array{OP},
+	Ops :: Array{SOP},
 	factor :: Float64,
 	basis :: Basis
 	)
@@ -127,7 +127,7 @@ Function to compute n-point correlation functions for a density matrix rho.
 """
 function correlation_npt(
 	rho :: Array{Complex{Float64},2},
-	Ops :: Array{OP},
+	Ops :: Array{SOP},
 	factor :: Float64,
 	basis :: Basis
 	)

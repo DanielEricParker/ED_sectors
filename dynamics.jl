@@ -99,14 +99,14 @@ Function to return a correlation at a certain type.
 * 'psi :: Array{ComplexF64}': the (normalized) state vector to measure
 * 'evolve :: Evolver': an evolver for our Hamiltonian
 * 't :: Float64': the time to measure at
-* 'Op :: OP': the operator to measure
+* 'Op :: SOP': the operator to measure
 * 'factor :: Float64': the scale on the operator
 """
 function correlation1pt(
 	psi :: Array{Complex{Float64},1},
 	eigsys :: EigSys,
 	t :: Float64,
-	Op :: OP,
+	Op :: SOP,
 	factor :: Float64,
 	basis :: Basis
 	)

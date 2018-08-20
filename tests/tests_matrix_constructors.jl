@@ -1,8 +1,3 @@
-include("../main.jl")
-
-using Test
-
-
 @testset "Testing matrix_constructors" begin
     @testset "Testing apply_S_plus" begin
 
@@ -53,11 +48,11 @@ using Test
     end
 
     @testset "Testing apply_operators" begin
-        ops = [OP("X",1),OP("X",2)]
-	    ops4 = [OP("-",5)]
+        ops = [SOP("X",1),SOP("X",2)]
+	    ops4 = [SOP("-",5)]
 	    v = VEC(1.0,15) #15 = [1,1,1,1]
-	    @test apply_operators(v,TERM(2.0,ops)) == VEC(2.0,9) #9 = [1,0,0,1]
-	    @test is_Null_VEC(apply_operators(v,TERM(3.0,ops4)))
+	    @test apply_operators(v,TERM_INTERNAL(2.0,ops)) == VEC(2.0,9) #9 = [1,0,0,1]
+	    @test is_Null_VEC(apply_operators(v,TERM_INTERNAL(3.0,ops4)))
     end
 
     @testset "Testing agreement of full and symmetry constructors" begin
@@ -65,13 +60,13 @@ using Test
 
     	#we need some hamiltonian to work with here
         function symbolic_XXZ_Hamiltonian(L :: Int, Delta :: Float64)
-		    H = ABSTRACT_OP(L, "XXZ", true)
+		    H = ABSTRACT_OP(L; name = "XXZ", pbc= true)
 		    #H = sum_i sigma_{+}^i sigma_{-}^{i+1}
-		    H += TERMS(0.5, "+-")
+		    H += TERM(0.5, "+-")
 		    #H = sum_i sigma_{-}^i sigma_{+}^{i+1}
-		    H += TERMS(0.5, "-+")
+		    H += TERM(0.5, "-+")
 		    #H = sum_i Delta*sigma_z^i sigma_z^{i+1}
-		    H += TERMS(Delta*1.0, "ZZ")
+		    H += TERM(Delta*1.0, "ZZ")
 		    return H
 		end
 		L = 8
