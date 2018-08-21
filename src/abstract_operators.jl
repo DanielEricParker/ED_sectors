@@ -311,11 +311,11 @@ end
 	TERM(prefactor,operatorName) = TERM(prefactor, operatorName,1, [repeat=1])
 	TERM(operatorName,firstSite,[repeat=0]) = TERM(1, operatorName,1, [repeat=0])
 
-A struct which stores one term in a Hamiltonian. A `TERM` is an operator whose action maps basis vectors to basis vectors (and not superpositions thereof). For spin-half systems, a term is any string of pauli operators, such as "Z_0 Z_1". The `TERM` struct can be constructed in several different ways fdepending on the situation.
+A struct which stores one term in a Hamiltonian. A `TERM` is an operator whose action maps basis vectors to basis vectors (and not superpositions thereof). For spin-half systems, a term is any string of pauli operators, such as ``Z_0 Z_1``. The `TERM` struct can be constructed in several different ways fdepending on the situation.
 
 # Arguments
 - 'prefactor:: Number': the numerical prefactor for the term.
-- 'operatorName:: String': a string of the allowed operators. For spin-half, the allowed operators are "1","I","X","Y","Z","+","-".
+- 'operatorName:: String': a string of the allowed operators. For spin-half, the allowed operators are "1", "I", "X", "Y", "Z", "+", and "-".
 - 'firstSite:: Int': the site for the first Pauli operator in the string.
 - 'repeat: Int':: the repeat period for the string of operators. If the `firstSite` is not specified, then the string repeats with period 1. If `firstSite` is specified, then the string does not repeat by default --- see examples below.
 
@@ -332,8 +332,6 @@ TERM(1, "ZXZ", 5, 2)
 
 julia> TERM(4.3,"ZXZ",5,repeat=2)
 TERM(4.3, "ZXZ", 5, 2)
-
-julia> TERM(-1.2, )
 ```
 """
 struct TERM
@@ -458,7 +456,9 @@ ABSTRACT_OP[name: S_z^7, L: 10, type: spin half, pbc: false, #terms: 1]
 4.3 + 0.0im*Z_7
 
 julia> H = ABSTRACT_OP(4; name="Ising Model", pbc=true)
+[...]
 julia> H += TERM("ZZ")
+[...]
 julia> H += TERM("X")
 ABSTRACT_OP[name: Ising Model, L: 4, type: spin half, pbc: true, #terms: 8]
 1.0 + 0.0im*Z_0 Z_1

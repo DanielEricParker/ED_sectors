@@ -1,0 +1,26 @@
+site_name:        ED_sectors
+repo_url:         https://github.com/DanielEricParker/ED_sectors
+site_description: Description...
+site_author:      USER_NAME
+
+theme: readthedocs
+
+extra_css:
+  - assets/Documenter.css
+
+extra_javascript:
+  - https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_HTML
+  - assets/mathjaxhelper.js
+
+markdown_extensions:
+  - codehilite
+  - extra
+  - tables
+  - fenced_code
+
+docs_dir: 'build'
+
+pages:
+  - Home: index.md
+  - Abstract Operators: abstract_operators.md
+  - Utilities: utilities.md

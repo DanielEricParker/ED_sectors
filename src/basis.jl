@@ -1,15 +1,3 @@
-######################################################
-#This file uses a conceptually easier way to make basis
-#which I anticipate should be slower to use but
-#faster to code, which is more important right now.
-#
-# Requires "basis.jl", since I want to be cross-compatible and
-# not re-define things.
-#
-#################################################
-
-
-
 #################### Data Structures ############################
 
 

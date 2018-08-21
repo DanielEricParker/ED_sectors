@@ -36,7 +36,7 @@ end
 #we wrap our code in a function so it compiles first
 function main()
 	println("Setting parameters...")
-	L = 12
+	L = 20
 	g = 0.8
 	println("L = $(L), g= $(0.8)")
 
@@ -48,8 +48,8 @@ function main()
 	println("\nSymmetries are:")
 	println(symmetries)
 
-	println("\nMaking a basis for a spin chain with $(L) sites, with no symmetries for now")
-	basis = make_basis(L;syms=symmetries)
+	println("\nMaking a basis for a spin chain with $(L) sites, with some symmetris.")
+	basis = Basis(L;syms=symmetries)
 	println("Basis is a basis of size $(basis.L).")
 
 
@@ -59,18 +59,24 @@ function main()
 
 
 	println("\nMaking the Hamiltonian matrix from the symbolic one...")
-	H = construct_matrix(basis, symbolic_H)
+	@time H = construct_matrix(basis, symbolic_H)
+	@time H = construct_matrix(basis, symbolic_H)
 
 	println("\nH is a matrix of size $(size(H)).")
 
-	println("\nPerform Laczos diagonalization for the first 10 eiganvalues")
-	eigs = k_eigvals(H,10)
+	println("\nPerform Lanczos diagonalization for the first 10 eiganvalues")
+	@time eigs = k_eigvals(H,1)
+	@time eigs = k_eigvals(H,1)
+
+	@time eigs2 = powm(H)
+	@time eigs2 = powm(H)
 
 
 	println("\nThe lowest 10 eigenvalues are:")
 	println(eigs)
+	println(eigs2[1])
 
-	println(observable(basis,"ZXZ",3))
+	# println(observable(basis,"ZXZ",3))
 
 end
 

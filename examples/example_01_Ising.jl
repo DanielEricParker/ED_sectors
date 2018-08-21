@@ -39,7 +39,7 @@ function main()
 	println("L = $(L), g= $(0.8)")
 
 	println("\nMaking a basis for a spin chain with $(L) sites, with no symmetries for now")
-	basisFull = make_basis(L)
+	basisFull = Basis(L)
 	println(basisFull)
 
 	println("\nMaking the symbolic Hamiltonian...")
