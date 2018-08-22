@@ -22,14 +22,19 @@ makedocs(
 #     doctest = true
 	sitename = "ED_sectors",
 	pages = [
-		"index.md",
-		"Abstract Operators" => "abstract_operators.md",
-		"Basis" => "basis.md",
-		"Matrix Constructors" => "matrix_constructors.md",
-		"Measurement" => "measurement.md",
-		"Dynamics" => "dynamics.md",
-		"Utilities" => "utilities.md"
-		],
+		"Overview" => "index.md",
+		"Tutorial" => "tutorial.md",
+		"Full API" =>
+			[
+			"Abstract Operators" => "abstract_operators.md",
+			"Making Bases" => "basis.md",
+			"Operators" => "matrix_constructors.md",
+			"Ground State Measurements" => "measurement.md",
+			"Full Spectrum Measurements" => "full_spec.md",
+			"Dynamics" => "dynamics.md",
+			"Utilities" => "utilities.md",
+			],
+		"Internals" => "internals.md"],
 	)
 
 

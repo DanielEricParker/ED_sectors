@@ -1,0 +1,4 @@
+julia 1.0
+Nullables 0.0.7
+IterativeSolvers 0.7.1
+Arpack 0.2.2

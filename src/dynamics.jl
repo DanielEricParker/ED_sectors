@@ -16,56 +16,23 @@
 #incorrect functions are commentsed for now
 
 """
-Struct for eigensystems, containing all eigenvectors and eigenvalues of matrix, the output of full ED.
-"""
-struct EigSys
-	evs :: Array{Float64} #eigenvalues
-	O :: Array{Complex{Float64},2} #eigenvectors
 
+	evolve_state(psi, eigsys, t)
 
-	"""
-	Function to perform full diagonalization on the Hamiltonian.
-	Returns an EigSys.
-	"""
-	function EigSys(H :: Matrix)
-		eigensystem = eigen(Matrix(H))
-		new(real(eigensystem.values),eigensystem.vectors)
-	end
-
-
-	"""
-	Alternatively, construct some other way.
-	Returns an EigSys.
-	"""
-	function EigSys(
-				evs :: Array{Float64}, #eigenvalues
-				O :: Array{Complex{Float64},2} #eigenvectors
-			)
-		new(evs,O)
-	end
-end
-Base.show(io::IO, eigsys :: EigSys) = print(io, "Evolver[] of size ", length(eigsys.evs))
-
-
-
-"""
-Function to evolve a state for a period of time.
-* 'psi :: Array{Complex{Float64},1}': the state to evolve
-* 'evolve :: Evolver': an evolver for our Hamiltonian
-* 't :: Float64': the time to measure at
+A function which computes the time-evolution of a state `psi` under a (already diagonalized) Hamiltonian `eigsys` for time `t`. Explicitly, this computes ``\\left.e^{- i H t} |\\psi\\right>``.
 """
 function evolve_state(
 	psi :: Array{Complex{Float64},1},
-	eigsys :: EigSys,
+	eigsys :: EIGSYS,
 	t :: Float64
 	)
 
 
 	#expEigenvals1 = [exp(-im * t * ev) for ev in eigsys.evs]
-	expEigenvals2 = [exp(im * t * ev) for ev in eigsys.evs]
+	expEigenvals2 = [exp(-im * t * ev) for ev in eigsys.evs]
 
 	#D1 = Diagonal(expEigenvals1)
-	D2 = Diagonal(expEigenvals2)
+	D = Diagonal(expEigenvals2)
 
 	#<psi|Op(t)|psi>
 	#	= <psi|exp(-itH) * Op * exp(itH)|psi>
@@ -78,10 +45,12 @@ function evolve_state(
 	#I'm not sure how to memory-manage this,
 	#so for now I'm just over-writing v many times
 
-	v = BLAS.gemv('C',eigsys.O,psi) #N for no transpose
+	# v = BLAS.gemv('C',eigsys.U,psi) #N for no transpose
 	
-	v = D2 * v #this is faster than -> v = BLAS.gemv('N',D2,v) 
-	v = BLAS.gemv('N',eigsys.O,v) #C for conjugate transpose
+	# v = D * v #this is faster than -> v = BLAS.gemv('N',D2,v) 
+	# v = BLAS.gemv('N',eigsys.U,v) #C for conjugate transpose
+
+	v = eigsys.U * D * adjoint(eigsys.U) * psi
 
 	return v
 end	
@@ -92,57 +61,56 @@ end
 #make a full operator, even though that's a bit dumb
 #
 #in particular, this makes no use of sparsity
-"""
-Function to return a correlation at a certain type.
+# """
+# Function to return a correlation at a certain type.
 
-#Arguments
-* 'psi :: Array{ComplexF64}': the (normalized) state vector to measure
-* 'evolve :: Evolver': an evolver for our Hamiltonian
-* 't :: Float64': the time to measure at
-* 'Op :: SOP': the operator to measure
-* 'factor :: Float64': the scale on the operator
-"""
-function correlation1pt(
-	psi :: Array{Complex{Float64},1},
-	eigsys :: EigSys,
-	t :: Float64,
-	Op :: SOP,
-	factor :: Float64,
-	basis :: BASIS
-	)
+# #Arguments
+# * 'psi :: Array{ComplexF64}': the (normalized) state vector to measure
+# * 'evolve :: Evolver': an evolver for our Hamiltonian
+# * 't :: Float64': the time to measure at
+# * 'Op :: SOP': the operator to measure
+# * 'factor :: Float64': the scale on the operator
+# """
+# function correlation1pt(
+# 	psi :: Array{Complex{Float64},1},
+# 	eigsys :: EIGSYS,
+# 	t :: Float64,
+# 	Op :: SOP,
+# 	factor :: Float64,
+# 	basis :: BASIS
+# 	)
 
-	abstract_O = ABSTRACT_OP(basis.L,Op)
-	Op_mat = construct_matrix(basis, abstract_O)
+# 	abstract_O = ABSTRACT_OP(basis.L,Op)
+# 	Op_mat = construct_matrix(basis, abstract_O)
 
-	return correlation(psi,eigsys,t,Op_mat)
-end
+# 	return correlation(psi,eigsys,t,Op_mat)
+# end
 
 
 #thought: for a single-site operator, it's probably way 
 #better to compute the reduced density matrix
 """
-Function to return a correlation at a certain type.
+	expectation_time(O, t, psi, eigsys)
+	expectation_time(O, t, rho, eigsys
 
-#Arguments
-* 'psi :: Array{ComplexF64}': the (normalized) state vector to measure
-* 'evolve :: Evolver': an evolver for our Hamiltonian
-* 't :: Float64': the time to measure at
-* 'Op :: Array{Complex{Float64},2}': the operator to measure
+For a state `psi`, measures the expectation of the operator `O` at time `t`  evolved under `eigsys`: ``\\left<\\psi|O(t)|\\psi\\right>``. 
+
+For a density operator `rho`, measures the expectation of the operator `O` at time `t`  evolved under `eigsys`: ``\\operatorname{Tr}[\\rho\\; O(t)]``.
 """
-function correlation(
+function expectation_time(
 	psi :: Array{Complex{Float64}},
-	eigsys :: EigSys,
-	t,
+	t :: Real,
+	eigsys :: EIGSYS,
 	Op :: AbstractMatrix
 	)
-	len = length(psi)
+	# len = length(psi)
 	
 
-	expEigenvals1 = [exp(-im * t * ev) for ev in eigsys.evs]
-	expEigenvals2 = [exp(im * t * ev) for ev in eigsys.evs]
+	# expEigenvals1 = [exp(-im * t * ev) for ev in eigsys.evs]
+	# expEigenvals2 = [exp(im * t * ev) for ev in eigsys.evs]
 
-	D1 = Diagonal(expEigenvals1)
-	D2 = Diagonal(expEigenvals2)
+	# D1 = Diagonal(expEigenvals1)
+	# D2 = Diagonal(expEigenvals2)
 
 	#<psi|Op(t)|psi>
 	#	= <psi|exp(-itH) * Op * exp(itH)|psi>
@@ -155,34 +123,27 @@ function correlation(
 	#I'm not sure how to memory-manage this,
 	#so for now I'm just over-writing v many times
 
-	v = BLAS.gemv('C',eigsys.O,psi) #N for no transpose
+	# v = BLAS.gemv('C',eigsys.O,psi) #N for no transpose
 	
-	v = D2 * v #this is faster than -> v = BLAS.gemv('N',D2,v) 
-	v = BLAS.gemv('N',eigsys.O,v) #C for conjugate transpose
-	v = Op * v #faster in the case we have a sparse matrix
-	#v = BLAS.gemv('N',Op, v)
-	v = BLAS.gemv('C',eigsys.O,v) #N for no transpose
-	v = D1 * v
-	v = BLAS.gemv('N',eigsys.O,v) #C for conjugate transpose
+	# v = D2 * v #this is faster than -> v = BLAS.gemv('N',D2,v) 
+	# v = BLAS.gemv('N',eigsys.O,v) #C for conjugate transpose
+	# v = Op * v #faster in the case we have a sparse matrix
+	# #v = BLAS.gemv('N',Op, v)
+	# v = BLAS.gemv('C',eigsys.O,v) #N for no transpose
+	# v = D1 * v
+	# v = BLAS.gemv('N',eigsys.O,v) #C for conjugate transpose
 
-	corr = BLAS.dotc(len,psi,1,v,1)
+	# corr = BLAS.dotc(len,psi,1,v,1)
 
-	return corr
+	psi_t = evolve_state(psi,eigsys,t)
+
+	return expectation(psi_t,Op*psi_t)
 end
 
-
-"""
-Function to return a correlation at a certain type.
-* 'rho :: Array{Complex{Float64},2}': the (normalized) density matrix
-* 'evolve :: Evolver': an evolver for our Hamiltonian
-* 't :: Float64': the time to measure at
-* 'Op :: Array{Complex{Float64},2}': the operator to measure
-
-"""
-function correlation1pt(
+function expectation_time(
 	rho :: Array{Complex{Float64},2},
-	eigsys :: EigSys,
-	t :: Float64,
+	t :: Real,
+	eigsys :: EIGSYS,
 	Op :: Array{Complex{Float64},2}
 	)
 
@@ -193,36 +154,33 @@ function correlation1pt(
 	D2 = Diagonal(expEigenvals2)
 
 	# Tr[ rho U*exp(-itD)*U^d*Op*U*exp(itD)*U^d ]
-	M = D2 * adjoint(eigsys.O) #D2 * U^d
+	M = D2 * adjoint(eigsys.U) #D2 * U^d
 	#M = BLAS.gemm('C','N',D2,evolve.O)
-	M = BLAS.gemm('N','N',eigsys.O,M) # U *
+	M = BLAS.gemm('N','N',eigsys.U,M) # U *
 	M = BLAS.gemm('N','N',Op,M)	# Op *
-	M = BLAS.gemm('C','N',eigsys.O,M) #U^d *
+	M = BLAS.gemm('C','N',eigsys.U,M) #U^d *
 	M = D1* M #exp(-itD) *
 	#M = BLAS.gemm('C','N',D1,M)
-	M = BLAS.gemm('N','N',eigsys.O,M) #U *
+	M = BLAS.gemm('N','N',eigsys.U,M) #U *
 	M = BLAS.gemm('N','N',rho,M) #rho *
 
 	return tr(M)
 
 end	
 
+
 #this is essentially the same as before
 #perhaps I should just combine them
 """
-Function to return a correlation at a certain type.
-* 'rho :: Array{Complex{Float64},2}': the (normalized) density matrix
-* 'evolve :: Evolver': an evolver for our Hamiltonian
-* 't :: Float64': the time to measure at
-* 'Op :: Array{Complex{Float64},2}': the first operator
-* 'Op :: Array{Complex{Float64},2}': the second operator
+	autocorrelation(O, t, rho, eigsys)
+
+Computes the autocorrelation of an operator `O` at time `t` against the density matrix `rho` when evolved under `eigsys`: ``\\operatorname{Tr}[\\rho\\; O(t) O(0)]``.
 """
-function correlation2pt(
-	rho :: Array{Complex{Float64},2},
-	eigsys :: EigSys,
+function autocorrelation(
+	O :: Array{Complex{Float64},2},
 	t :: Float64,
-	Op1 :: Array{Complex{Float64},2},
-	Op2:: Array{Complex{Float64},2}
+	rho :: Array{Complex{Float64},2},
+	eigsys :: EIGSYS
 	)
 
 
@@ -234,51 +192,60 @@ function correlation2pt(
 
 	# Tr[ rho U*exp(-itD)*U^d*Op_1*U*exp(itD)*U^d Op_2]
 
-	M = BLAS.gemm('C','N',eigsys.O, Op2)
+	M = BLAS.gemm('C','N',eigsys.U, O)
 	M = D2 * M #D2 * U
 	#M = BLAS.gemm('C','N',D2,evolve.O)
-	M = BLAS.gemm('N','N',eigsys.O,M) # U *
-	M = BLAS.gemm('N','N',Op1,M)	# Op *
-	M = BLAS.gemm('C','N',eigsys.O,M) #U^d *
+	M = BLAS.gemm('N','N',eigsys.U,M) # U *
+	M = BLAS.gemm('N','N',O,M)	# Op *
+	M = BLAS.gemm('C','N',eigsys.U,M) #U^d *
 	M = D1* M #exp(-itD) *
 	#M = BLAS.gemm('C','N',D1,M)
-	M = BLAS.gemm('N','N',eigsys.O,M) #U *
+	M = BLAS.gemm('N','N',eigsys.U,M) #U *
 	M = BLAS.gemm('N','N',rho,M) #rho *
 
 	return tr(M)
 end
 
-"""
-Function to compute the thermal density matrix
-"""
-function thermal_density_matrix(
-	eigsys :: EigSys,
-	beta :: Float64
-	)
-	
-	boltzmann = [exp(-beta * ev) for ev in eigsys.evs]
-	Z = sum(boltzmann)
-	D = (1/Z) * Diagonal(boltzmann)
+# #this is essentially the same as before
+# #perhaps I should just combine them
+# """
+# Function to return a correlation at a certain type.
+# * 'rho :: Array{Complex{Float64},2}': the (normalized) density matrix
+# * 'evolve :: Evolver': an evolver for our Hamiltonian
+# * 't :: Float64': the time to measure at
+# * 'Op :: Array{Complex{Float64},2}': the first operator
+# * 'Op :: Array{Complex{Float64},2}': the second operator
+# """
+# function autocorrelation(
+# 	rho :: Array{Complex{Float64},2},
+# 	eigsys :: EIGSYS,
+# 	t :: Float64,
+# 	Op1 :: Array{Complex{Float64},2},
+# 	Op2:: Array{Complex{Float64},2}
+# 	)
 
-	M = D * adjoint(eigsys.O)
-	M = BLAS.gemm('N','N',eigsys.O,M)
-	return M
-end
 
-#for infinite temeperature, i.e. beta = 0
-function thermal_density_matrix(
-	eigsys :: EigSys,
-	beta :: Int
-	)
-	if(beta != 0)
-		return thermal_density_matrix(eigsys,Float64(beta))
-	end
-	Z =length(eigsys.evs)
-	a = 1/Z
-	D = Matrix{ComplexF64}(Diagonal([a for i in 1:Z]))
-	return D
-end
+# 	expEigenvals1 = [exp(-im * t * ev) for ev in eigsys.evs]
+# 	expEigenvals2 = [exp(im * t * ev) for ev in eigsys.evs]
 
+# 	D1 = Diagonal(expEigenvals1)
+# 	D2 = Diagonal(expEigenvals2)
+
+# 	# Tr[ rho U*exp(-itD)*U^d*Op_1*U*exp(itD)*U^d Op_2]
+
+# 	M = BLAS.gemm('C','N',eigsys.O, Op2)
+# 	M = D2 * M #D2 * U
+# 	#M = BLAS.gemm('C','N',D2,evolve.O)
+# 	M = BLAS.gemm('N','N',eigsys.O,M) # U *
+# 	M = BLAS.gemm('N','N',Op1,M)	# Op *
+# 	M = BLAS.gemm('C','N',eigsys.O,M) #U^d *
+# 	M = D1* M #exp(-itD) *
+# 	#M = BLAS.gemm('C','N',D1,M)
+# 	M = BLAS.gemm('N','N',eigsys.O,M) #U *
+# 	M = BLAS.gemm('N','N',rho,M) #rho *
+
+# 	return tr(M)
+# end
 
 """
 Function to compute a two-point function <psi|O(t)O(0)|psi>
@@ -287,7 +254,7 @@ operator at each time, we can optimize this a bit.
 """
 function timeseries(
 	psi :: Array{Complex{Float64}},
-	eigsys :: EigSys,
+	eigsys :: EIGSYS,
 	times :: Array{Float64},
 	Op1 :: Array{Complex{Float64},2},
 	Op2:: Array{Complex{Float64},2};
@@ -337,7 +304,7 @@ at a list of times {t1,t2,...}.
 """
 function timeseries(
 	rho :: Array{Complex{Float64},2},
-	eigsys :: EigSys,
+	eigsys :: EIGSYS,
 	times :: Array{Float64},
 	Op1 :: Array{Complex{Float64},2},
 	Op2:: Array{Complex{Float64},2};
@@ -392,7 +359,7 @@ operator at each time, we can optimize this a bit.
 function timeseries2(
 	psi :: Array{Complex{Float64}}, ###must be an eigenstate
 	E_psi :: Float64,
-	eigsys :: EigSys,
+	eigsys :: EIGSYS,
 	times :: Array{Float64},
 	Op, #can be sparse
 	verbose :: Bool = false

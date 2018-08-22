@@ -9,12 +9,8 @@ end
 ```@docs
 k_eigvals
 k_eigsys
-full_ED
-observable
-correlation
-correlation1pt
+expectation
 reduce_density_matrix
 entanglement_entropy
 measure_EE
-r_statistic
 ```

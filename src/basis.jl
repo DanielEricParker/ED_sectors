@@ -475,25 +475,17 @@ struct BASIS
     #type for storing a basis with various quantum numbers
     L :: Int #number of sites
     a :: Int
+    dim :: Int
     get_conj_class :: Dict{UInt64,BASISVECTOR} #gets basis vector for any state
     conj_classes :: Dict{UInt64,CONJCLASS}    #gets index and norm of a conjugacy class
     q_numbers :: Dict{String,Int} #list of quantum numbers for the state
     #e.g. q_numbers = [("K",1),("Sz",3)]
 
-    function BASIS(
-    		L::Int
-    	)
-    		new(L,
-    		1, 
-			Dict{UInt64,BASISVECTOR}(),
-			Dict{UInt64,CONJCLASS}(),
-			Dict{String,Int}())
-    	end
-
     #expose default constuctor
     function BASIS(
-    	L :: Int64,
-    	a :: Int64,
+    	L :: Int,
+    	a :: Int,
+    	dim :: Int,
 	    get_conj_class :: Dict{UInt64,BASISVECTOR}, #gets basis vector for any state
 	    conj_classes :: Dict{UInt64,CONJCLASS},    #gets index and norm of a conjugacy class
 	    q_numbers :: Dict{String,Int}
@@ -501,6 +493,7 @@ struct BASIS
     	new(
 		    L,
 	    	a,
+	    	dim,
 	    	get_conj_class,
 	    	conj_classes,
 	    	q_numbers)
@@ -519,7 +512,7 @@ end
 function Base.show(
 	io::IO,
 	b::BASIS)
-	print(io, "BASIS[L: $(b.L), a: $(b.a), dim: $(length(b.conj_classes)), symmetries: ")
+	print(io, "BASIS[L: $(b.L), a: $(b.a), dim: $(b.dim), symmetries: ")
 	if b.q_numbers != Dict{String,Int64}()
 		for (n,(k,v)) in enumerate(b.q_numbers)
 			if n != 1
@@ -559,6 +552,14 @@ function make_basis(
 
 	@assert L % unitCellSize == 0 "The unit cell size, $(unitCellSize), does not divide the number of spins, $(L)"
 
+	if unitCellSize == 1 && syms == Dict{String,Int}() && constraint === identity
+		return BASIS(L,
+			1, 
+			2^L,
+			Dict{UInt64,BASISVECTOR}(),
+			Dict{UInt64,CONJCLASS}(),
+			Dict{String,Int}())
+	end
 
 	#separate out the symemtries that simply restrict the Hilbert space
 	#hardcoded names for now, as only a few are implemented
@@ -634,7 +635,7 @@ function make_basis(
 
     symmetries = merge(symmetries,validity_syms)
 
-	return BASIS(L, unitCellSize, basis, reps, symmetries)
+	return BASIS(L, unitCellSize, length(reps),basis, reps, symmetries)
 end
 
 

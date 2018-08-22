@@ -34,12 +34,18 @@ module ED_sectors
 	include("measurement.jl")
 	#no datatypes to export!
 	#export functions
-	export k_eigvals, k_eigsys, full_ED, observable, correlation, correlation1pt, reduce_density_matrix, entanglement_entropy, measure_EE, r_statistic
+	export k_eigvals, k_eigsys, expectation, reduce_density_matrix, entanglement_entropy, measure_EE
+
+	include("full_spectrum_measurement.jl")
+	#export datatypes
+	export EIGSYS
+	export thermal_density_matrix, r_statistic
+
 
 	include("dynamics.jl")
-	#export datatypes
-	export EigSys
+
 	#export functions
-	export evolve_state, correlation1pt, correlation, correlation1pt, correlation2pt, thermal_density_matrix, timeseries,timeseries2
+	export evolve_state, expectation_time, autocorrelation
+	#, correlation1pt, correlation, correlation1pt, correlation2pt, thermal_density_matrix, timeseries,timeseries2
 
 end	

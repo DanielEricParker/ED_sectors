@@ -166,59 +166,85 @@ end
 
 """
 
-    Operator(basis, abstract_op)
+    Operator(abstract_op, basis)
+    Operator(term, basis)
+    Operator(operatorName, site, basis)
 
-Constructs a matrix from an `ABSTRACT_OP` for the given `BASIS`. Returns a sparse matrix.
+Constructs an operator in a given `BASIS`. One can specify a full `ABSTRACT_OP` or, as a shortcut for simple obserables, just a single `TERM` or even the name and site of the operator.
+
+Returns a sparse matrix.
+
+
 
 # Examples
+
+Simple observables are simple to create.
+
 ```jldoctest
-julia> basis = BASIS(4);
+julia> L = 4; basis = BASIS(L);
 
-julia> ising = ABSTRACT_OP(4; name="Ising Model", pbc=true) + TERM("ZZ") + 0.3*TERM("X");
-
-julia> H = Operator(basis,ising)
-16×16 SparseArrays.SparseMatrixCSC{Complex{Float64},Int64} with 68 stored entries:
-  [1 ,  1]  =  4.0+0.0im
-  [2 ,  1]  =  0.3+0.0im
-  [3 ,  1]  =  0.3+0.0im
-  [5 ,  1]  =  0.3+0.0im
-  [9 ,  1]  =  0.3+0.0im
-  [1 ,  2]  =  0.3+0.0im
-  [4 ,  2]  =  0.3+0.0im
-  [6 ,  2]  =  0.3+0.0im
-  [10,  2]  =  0.3+0.0im
-  ⋮
-  [7 , 15]  =  0.3+0.0im
-  [11, 15]  =  0.3+0.0im
-  [13, 15]  =  0.3+0.0im
-  [16, 15]  =  0.3+0.0im
-  [8 , 16]  =  0.3+0.0im
-  [12, 16]  =  0.3+0.0im
-  [14, 16]  =  0.3+0.0im
-  [15, 16]  =  0.3+0.0im
-  [16, 16]  =  4.0+0.0im
-
-
-julia> Sz4 = ABSTRACT_OP(4,"Z",2);
-
-julia> observable = Operator(basis,Sz4)
+julia> Sx2 = Operator("X", 2, basis)
 16×16 SparseArrays.SparseMatrixCSC{Complex{Float64},Int64} with 16 stored entries:
+  [5 ,  1]  =  1.0+0.0im
+  [6 ,  2]  =  1.0+0.0im
+  [7 ,  3]  =  1.0+0.0im
+  [8 ,  4]  =  1.0+0.0im
+  [1 ,  5]  =  1.0+0.0im
+  [2 ,  6]  =  1.0+0.0im
+  [3 ,  7]  =  1.0+0.0im
+  [4 ,  8]  =  1.0+0.0im
+  [13,  9]  =  1.0+0.0im
+  [14, 10]  =  1.0+0.0im
+  [15, 11]  =  1.0+0.0im
+  [16, 12]  =  1.0+0.0im
+  [9 , 13]  =  1.0+0.0im
+  [10, 14]  =  1.0+0.0im
+  [11, 15]  =  1.0+0.0im
+  [12, 16]  =  1.0+0.0im
+
+julia> magnetic_order_parameter = Operator((1/L)*TERM("Z"), basis)
+16×16 SparseArrays.SparseMatrixCSC{Complex{Float64},Int64} with 10 stored entries:
   [1 ,  1]  =  1.0+0.0im
-  [2 ,  2]  =  1.0+0.0im
-  [3 ,  3]  =  1.0+0.0im
-  [4 ,  4]  =  1.0+0.0im
-  [5 ,  5]  =  -1.0+0.0im
-  [6 ,  6]  =  -1.0+0.0im
-  [7 ,  7]  =  -1.0+0.0im
-  [8 ,  8]  =  -1.0+0.0im
-  [9 ,  9]  =  1.0+0.0im
-  [10, 10]  =  1.0+0.0im
-  [11, 11]  =  1.0+0.0im
-  [12, 12]  =  1.0+0.0im
-  [13, 13]  =  -1.0+0.0im
-  [14, 14]  =  -1.0+0.0im
-  [15, 15]  =  -1.0+0.0im
+  [2 ,  2]  =  0.5+0.0im
+  [3 ,  3]  =  0.5+0.0im
+  [5 ,  5]  =  0.5+0.0im
+  [8 ,  8]  =  -0.5+0.0im
+  [9 ,  9]  =  0.5+0.0im
+  [12, 12]  =  -0.5+0.0im
+  [14, 14]  =  -0.5+0.0im
+  [15, 15]  =  -0.5+0.0im
   [16, 16]  =  -1.0+0.0im
+
+```
+
+Creating more involved operators, like most Hamiltonians, is also straightforward.
+
+```jldoctest
+julia> L = 4; basis = BASIS(L);
+
+julia> ising = ABSTRACT_OP(L; name="Ising Model", pbc=true) + 2TERM("ZZ") + TERM("X");
+
+julia> H = Operator(ising,basis)
+16×16 SparseArrays.SparseMatrixCSC{Complex{Float64},Int64} with 68 stored entries:
+  [1 ,  1]  =  8.0+0.0im
+  [2 ,  1]  =  1.0+0.0im
+  [3 ,  1]  =  1.0+0.0im
+  [5 ,  1]  =  1.0+0.0im
+  [9 ,  1]  =  1.0+0.0im
+  [1 ,  2]  =  1.0+0.0im
+  [4 ,  2]  =  1.0+0.0im
+  [6 ,  2]  =  1.0+0.0im
+  [10,  2]  =  1.0+0.0im
+  ⋮
+  [7 , 15]  =  1.0+0.0im
+  [11, 15]  =  1.0+0.0im
+  [13, 15]  =  1.0+0.0im
+  [16, 15]  =  1.0+0.0im
+  [8 , 16]  =  1.0+0.0im
+  [12, 16]  =  1.0+0.0im
+  [14, 16]  =  1.0+0.0im
+  [15, 16]  =  1.0+0.0im
+  [16, 16]  =  8.0+0.0im
 
 ```
 
@@ -226,9 +252,9 @@ julia> observable = Operator(basis,Sz4)
 See also: [`ABSTRACT_OP`](@ref), [`BASIS`](@ref).
 """
 function Operator(
-    basis :: BASIS, 
-    abstract_op :: ABSTRACT_OP)
-
+    abstract_op :: ABSTRACT_OP,
+    basis :: BASIS
+    )
     #this should eventually decide if the operator satisfies the symmetries
 
     #decide if we want the full constructor, or the one with symmetries
@@ -238,6 +264,28 @@ function Operator(
         construct_matrix_sym(basis,abstract_op)
     end
 end
+
+#shortcut constructor for short observables
+function Operator(
+        term :: TERM,
+        basis :: BASIS
+    )
+    abstract_op  = ABSTRACT_OP(basis.L,term)
+    op_mat = Operator(abstract_op, basis)
+    return op_mat
+end
+
+#shortcut constructor for short observables
+function Operator(
+        operatorName :: String,
+        site :: Int,
+        basis :: BASIS
+    )
+    abstract_op  = ABSTRACT_OP(basis.L,operatorName,site)
+    op_mat = Operator(abstract_op, basis)
+    return op_mat
+end
+
 
 """
 
