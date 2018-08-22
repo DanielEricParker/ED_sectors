@@ -42,6 +42,8 @@ deploydocs(
     repo = "github.com/DanielEricParker/ED_sectors.git",
 	target = "build",
     julia = "1.0",
+	branch = "gh-pages",
+	latest = "master",
     deps = nothing,
 	make = nothing,
 )
