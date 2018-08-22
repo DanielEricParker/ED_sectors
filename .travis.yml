@@ -1,7 +1,5 @@
 language: julia
 
-DOCUMENTER_DEBUG = true
-
 os:
   - linux
   - osx
