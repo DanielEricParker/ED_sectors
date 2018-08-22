@@ -56,7 +56,7 @@
     end
 
     @testset "Testing agreement of full and symmetry constructors" begin
-    	#this will catch a few errors if the full and symmetry matrices differ for some reason
+    	#this will catch a few errors if the full and symmetric matrices differ for some reason
 
     	#we need some hamiltonian to work with here
         function symbolic_XXZ_Hamiltonian(L :: Int, Delta :: Float64)
@@ -69,12 +69,15 @@
 		    H += ED_sectors.TERM(Delta*1.0, "ZZ")
 		    return H
 		end
-		L = 8
+		L = 2
 		abstract_hamiltonian = symbolic_XXZ_Hamiltonian(L,0.8)
 		basis = ED_sectors.BASIS(L)
-		H1 = ED_sectors.construct_matrix_sym(basis,abstract_hamiltonian)
+		H1 = ED_sectors.Operator(abstract_hamiltonian,basis)
+		println("H1:")
+		println(H1)
 		H2 = ED_sectors.construct_matrix_full(basis,abstract_hamiltonian)
-
+		println("H2:")
+		println(H2)
 		@test isapprox(H1,H2)
 	end
 

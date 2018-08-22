@@ -299,7 +299,7 @@ function construct_matrix_sym(basis :: BASIS, abstract_op :: ABSTRACT_OP)
     #reps - represenatives of conjugacy classes Dict
     #opsList - list of operators we want to add to the Hamiltonian
 
-    dim = length(basis.conj_classes)
+    dim = basis.dim
     H = spzeros(ComplexF64,dim,dim)
 
     #iterate over conjugacy classes
