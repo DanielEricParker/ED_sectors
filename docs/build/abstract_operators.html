@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Abstract Operators · ED_sectors</title><link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/4.2.0/normalize.min.css" rel="stylesheet" type="text/css"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link href="assets/documenter.css" rel="stylesheet" type="text/css"/></head><body><nav class="toc"><h1>ED_sectors</h1><select id="version-selector" onChange="window.location.href=this.value" style="visibility: hidden"></select><form class="search" id="search-form" action="search.html"><input id="search-query" name="q" type="text" placeholder="Search docs"/></form><ul><li><a class="toctext" href="index.html">Overview</a></li><li><a class="toctext" href="tutorial.html">Tutorial</a></li><li><span class="toctext">Full API</span><ul><li class="current"><a class="toctext" href="abstract_operators.html">Abstract Operators</a><ul class="internal"></ul></li><li><a class="toctext" href="basis.html">Making Bases</a></li><li><a class="toctext" href="matrix_constructors.html">Operators</a></li><li><a class="toctext" href="measurement.html">Ground State Measurements</a></li><li><a class="toctext" href="full_spec.html">Full Spectrum Measurements</a></li><li><a class="toctext" href="dynamics.html">Dynamics</a></li><li><a class="toctext" href="utilities.html">Utilities</a></li></ul></li><li><a class="toctext" href="internals.html">Internals</a></li></ul></nav><article id="docs"><header><nav><ul><li>Full API</li><li><a href="abstract_operators.html">Abstract Operators</a></li></ul><a class="edit-page" href="https://github.com/DanielEricParker/ED_sectors/blob/master/docs/src/abstract_operators.md"><span class="fa"></span> Edit on GitHub</a></nav><hr/><div id="topbar"><span>Abstract Operators</span><a class="fa fa-bars" href="#"></a></div></header><h1><a class="nav-anchor" id="Abstract-Operators-1" href="#Abstract-Operators-1">Abstract Operators</a></h1><section class="docstring"><div class="docstring-header"><a class="docstring-binding" id="ED_sectors.TERM" href="#ED_sectors.TERM"><code>ED_sectors.TERM</code></a> — <span class="docstring-category">Type</span>.</div><div><div><pre><code class="language-none">TERM(prefactor,operatorName,firstSite, [repeat=0])
+
+TERM(operatorName) = TERM(1, operatorName, 1, [repeat=1])
+TERM(prefactor,operatorName) = TERM(prefactor, operatorName,1, [repeat=1])
+TERM(operatorName,firstSite,[repeat=0]) = TERM(1, operatorName,1, [repeat=0])</code></pre><p>A struct which stores one term in a Hamiltonian. A <code>TERM</code> is an operator whose action maps basis vectors to basis vectors (and not superpositions thereof). For spin-half systems, a term is any string of pauli operators, such as <span>$Z_0 Z_1$</span>. The <code>TERM</code> struct can be constructed in several different ways fdepending on the situation.</p><p><strong>Arguments</strong></p><ul><li>&#39;prefactor:: Number&#39;: the numerical prefactor for the term.</li><li>&#39;operatorName:: String&#39;: a string of the allowed operators. For spin-half, the allowed operators are &quot;1&quot;, &quot;I&quot;, &quot;X&quot;, &quot;Y&quot;, &quot;Z&quot;, &quot;+&quot;, and &quot;-&quot;.</li><li>&#39;firstSite:: Int&#39;: the site for the first Pauli operator in the string.</li><li>&#39;repeat: Int&#39;:: the repeat period for the string of operators. If the <code>firstSite</code> is not specified, then the string repeats with period 1. If <code>firstSite</code> is specified, then the string does not repeat by default –- see examples below.</li></ul><p><strong>Examples</strong></p><pre><code class="language-julia-repl">julia&gt; TERM(&quot;ZZ&quot;)
+TERM(1, Dict(0=&gt;&quot;Z&quot;,1=&gt;&quot;Z&quot;), 1)
+
+julia&gt; TERM(3.0,&quot;ZXXXZ&quot;,3)
+TERM(3.0, Dict(7=&gt;&quot;Z&quot;,4=&gt;&quot;X&quot;,3=&gt;&quot;Z&quot;,5=&gt;&quot;X&quot;,6=&gt;&quot;X&quot;), 0)
+
+julia&gt; TERM(&quot;ZXZ&quot;,5,repeat=2)
+TERM(1, Dict(7=&gt;&quot;Z&quot;,5=&gt;&quot;Z&quot;,6=&gt;&quot;X&quot;), 2)
+
+julia&gt; TERM(4.3,&quot;ZXZ&quot;,5,repeat=2)
+TERM(4.3, Dict(7=&gt;&quot;Z&quot;,5=&gt;&quot;Z&quot;,6=&gt;&quot;X&quot;), 2)</code></pre></div></div><a class="source-link" target="_blank" href="https://github.com/DanielEricParker/ED_sectors/blob/12697ac23d15742b83787cdb6272fc300249d18c/src/abstract_operators.jl#L47-L76">source</a></section><section class="docstring"><div class="docstring-header"><a class="docstring-binding" id="Base.:*-Tuple{Number,TERM}" href="#Base.:*-Tuple{Number,TERM}"><code>Base.:*</code></a> — <span class="docstring-category">Method</span>.</div><div><div><pre><code class="language-none">x * TERM
+*(x,TERM)</code></pre><p>Scalar multiplication of <code>TERM</code>&#39;s: the scalar &#39;x&#39; acts on the prefactor to &#39;TERM&#39;.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl">julia&gt; t1 = TERM(4,&quot;ZXZ&quot;,5,repeat=2)
+TERM(4, Dict(7=&gt;&quot;Z&quot;,5=&gt;&quot;Z&quot;,6=&gt;&quot;X&quot;), 2)
+julia&gt; 3im*t1
+TERM(0 + 12im, Dict(7=&gt;&quot;Z&quot;,5=&gt;&quot;Z&quot;,6=&gt;&quot;X&quot;), 2)
+</code></pre></div></div><a class="source-link" target="_blank" href="https://github.com/DanielEricParker/ED_sectors/blob/12697ac23d15742b83787cdb6272fc300249d18c/src/abstract_operators.jl#L126-L141">source</a></section><section class="docstring"><div class="docstring-header"><a class="docstring-binding" id="ED_sectors.ABSTRACT_OP" href="#ED_sectors.ABSTRACT_OP"><code>ED_sectors.ABSTRACT_OP</code></a> — <span class="docstring-category">Type</span>.</div><div><div><pre><code class="language-none">ABSTRACT_OP(L; sites = &quot;spin half&quot;, name = &quot;abstract operator&quot;, pbc = true)
+ABSTRACT_OP(L, operatorName, site; sites = &quot;spin half&quot;, name = &quot;abstract operator&quot;, pbc = true)
+ABSTRACT_OP(L, TERM; sites = &quot;spin half&quot;, name = &quot;abstract operator&quot;, pbc = true)</code></pre><p>The <code>ABSTRACT_OP</code> struct represents an operator as a string of operator names on sites, along with their numerical prefactors. This also encodes some details of the Hilbert space, including the number of sites <code>L</code>, the type of site in use <code>sites</code> (e.g. spin half), the name for the operator <code>name</code>, and <code>pbc</code> which is true when periodic boundary conditions are employed.</p><p><code>ABSTRACT_OP</code>&#39;s constitute a vector space and can be added and scalar-multiplied by (generically) complex numbers. </p><p><strong>Examples</strong></p><p>There are several different types of constructors available for <code>ABSTRACT_OP</code>, enabling the quick definition of &quot;shells&quot; of operators which can be used to define complex Hamiltonians, or quick constructors for simple observables.</p><pre><code class="language-julia-repl">julia&gt; ABSTRACT_OP(10)
+ABSTRACT_OP[name: &quot;abstract operator&quot;, L: 10, type: spin half, pbc: true, #terms: 0]
+
+julia&gt; ABSTRACT_OP(10,&quot;X&quot;,4)
+ABSTRACT_OP[name: &quot;abstract operator&quot;, L: 10, type: spin half, pbc: true, #terms: 1]
+1.0 + 0.0im*X_4
+
+julia&gt; ABSTRACT_OP(10,TERM(&quot;Y&quot;,5))
+ABSTRACT_OP[name: &quot;abstract operator&quot;, L: 10, type: spin half, pbc: true, #terms: 1]
+1.0 + 0.0im*Y_5
+
+julia&gt; ABSTRACT_OP(10,TERM(&quot;Z&quot;,7); pbc=false)
+ABSTRACT_OP[name: &quot;abstract operator&quot;, L: 10, type: spin half, pbc: false, #terms: 1]
+1.0 + 0.0im*Z_7
+
+julia&gt; ABSTRACT_OP(10,4.3TERM(&quot;Z&quot;,7); name=&quot;S_z^7&quot;, pbc=false)
+ABSTRACT_OP[name: &quot;S_z^7&quot;, L: 10, type: spin half, pbc: false, #terms: 1]
+4.3 + 0.0im*Z_7
+
+julia&gt; ABSTRACT_OP(4; name=&quot;Ising Model&quot;, pbc=true) + TERM(&quot;ZZ&quot;) + TERM(&quot;X&quot;)
+ABSTRACT_OP[name: &quot;Ising Model&quot;, L: 4, type: spin half, pbc: true, #terms: 8]
+1.0 + 0.0im*Z_0 Z_1
+1.0 + 0.0im*Z_1 Z_2
+1.0 + 0.0im*Z_2 Z_3
+1.0 + 0.0im*Z_0 Z_3
+1.0 + 0.0im*X_0
+1.0 + 0.0im*X_1
+1.0 + 0.0im*X_2
+1.0 + 0.0im*X_3
+
+julia&gt; order_parameter = ABSTRACT_OP(4,0.25*TERM(&quot;ZZ&quot;))
+ABSTRACT_OP[name: &quot;abstract operator&quot;, L: 4, type: spin half, pbc: true, #terms: 4]
+0.25 + 0.0im*Z_0 Z_1
+0.25 + 0.0im*Z_1 Z_2
+0.25 + 0.0im*Z_2 Z_3
+0.25 + 0.0im*Z_0 Z_3</code></pre><p>See also: <a href="abstract_operators.html#ED_sectors.TERM"><code>TERM</code></a>.</p></div></div><a class="source-link" target="_blank" href="https://github.com/DanielEricParker/ED_sectors/blob/12697ac23d15742b83787cdb6272fc300249d18c/src/abstract_operators.jl#L174-L228">source</a></section><section class="docstring"><div class="docstring-header"><a class="docstring-binding" id="Base.:*-Tuple{Number,ABSTRACT_OP}" href="#Base.:*-Tuple{Number,ABSTRACT_OP}"><code>Base.:*</code></a> — <span class="docstring-category">Method</span>.</div><div><div><pre><code class="language-none">x * Op
+*(x, Op)</code></pre><p>Scalar multiplication of <code>ABSTRACT_OP</code>s.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl">julia&gt; 	Op = ABSTRACT_OP(10,TERM(2,&quot;X&quot;,4))
+ABSTRACT_OP[name: &quot;abstract operator&quot;, L: 10, type: spin half, pbc: true, #terms: 1]
+2.0 + 0.0im*X_4
+
+julia&gt; 3*Op
+ABSTRACT_OP[name: &quot;abstract operator&quot;, L: 10, type: spin half, pbc: true, #terms: 1]
+6.0 + 0.0im*X_4
+</code></pre></div></div><a class="source-link" target="_blank" href="https://github.com/DanielEricParker/ED_sectors/blob/12697ac23d15742b83787cdb6272fc300249d18c/src/abstract_operators.jl#L315-L331">source</a></section><section class="docstring"><div class="docstring-header"><a class="docstring-binding" id="Base.:+-Tuple{ABSTRACT_OP,ABSTRACT_OP}" href="#Base.:+-Tuple{ABSTRACT_OP,ABSTRACT_OP}"><code>Base.:+</code></a> — <span class="docstring-category">Method</span>.</div><div><div><pre><code class="language-none">O1 + O2
++(O1,O2)</code></pre><p>Adds two <code>ABSTRACT_OP</code>s. Operators must have the same length, site type, and boundary conditions.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl">julia&gt; 	OP1 = ABSTRACT_OP(10,&quot;X&quot;,4); OP2 = ABSTRACT_OP(10,&quot;Z&quot;,5);
+
+julia&gt; OP1+OP2
+ABSTRACT_OP[name: &quot;abstract operator + abstract operator&quot;, L: 10, type: spin half, pbc: true, #terms: 2]
+1.0 + 0.0im*X_4
+1.0 + 0.0im*Z_5</code></pre></div></div><a class="source-link" target="_blank" href="https://github.com/DanielEricParker/ED_sectors/blob/12697ac23d15742b83787cdb6272fc300249d18c/src/abstract_operators.jl#L288-L304">source</a></section><section class="docstring"><div class="docstring-header"><a class="docstring-binding" id="Base.:+-Tuple{ABSTRACT_OP,TERM}" href="#Base.:+-Tuple{ABSTRACT_OP,TERM}"><code>Base.:+</code></a> — <span class="docstring-category">Method</span>.</div><div><div><pre><code class="language-none">Op + term
++(Op, term)</code></pre><p>Adds a new <code>TERM</code> to an <code>ABSTRACT_OP</code>. The <code>TERM</code> must fit inside the number of sites for the operator.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl">julia&gt; ABSTRACT_OP(4; name=&quot;Ising Model&quot;, pbc=true) + TERM(&quot;ZZ&quot;) + TERM(&quot;X&quot;)
+ABSTRACT_OP[name: &quot;Ising Model&quot;, L: 4, type: spin half, pbc: true, #terms: 8]
+1.0 + 0.0im*Z_0 Z_1
+1.0 + 0.0im*Z_1 Z_2
+1.0 + 0.0im*Z_2 Z_3
+1.0 + 0.0im*Z_0 Z_3
+1.0 + 0.0im*X_0
+1.0 + 0.0im*X_1
+1.0 + 0.0im*X_2
+1.0 + 0.0im*X_3</code></pre></div></div><a class="source-link" target="_blank" href="https://github.com/DanielEricParker/ED_sectors/blob/12697ac23d15742b83787cdb6272fc300249d18c/src/abstract_operators.jl#L338-L359">source</a></section><footer><hr/><a class="previous" href="tutorial.html"><span class="direction">Previous</span><span class="title">Tutorial</span></a><a class="next" href="basis.html"><span class="direction">Next</span><span class="title">Making Bases</span></a></footer></article></body></html>
