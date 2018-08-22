@@ -1,4 +1,4 @@
-# Utilities
+# Basis
 
 ```@meta
 DocTestSetup = quote
@@ -7,6 +7,5 @@ end
 ```
 
 ```@docs
-ED_sectors.export_data
-ED_sectors.make_filename
+BASIS
 ```

@@ -22,15 +22,14 @@ module ED_sectors
 
 	include("basis.jl")
 	#export datatypes
-	export BasisVector, ConjClass, ORBIT, Basis
+	export BASIS
 	#no functions to export! they're all internal
 	#this should be revisited so users can add their own symmetries
 
 	include("matrix_constructors.jl")
-	#export datatypes
-	export VEC
+	#export datatypes --- none needed
 	#export functions
-	export construct_matrix, construct_matrix_fermion_biliners
+	export Operator
 
 	include("measurement.jl")
 	#no datatypes to export!

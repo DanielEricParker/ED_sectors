@@ -166,12 +166,67 @@ end
 
 """
 
-    construct_matrix(basis, abstract_op)
+    Operator(basis, abstract_op)
 
-Constructs a matrix from an abstract operator for the given basis. Returns a sparse matrix.
+Constructs a matrix from an `ABSTRACT_OP` for the given `BASIS`. Returns a sparse matrix.
+
+# Examples
+```jldoctest
+julia> basis = BASIS(4);
+
+julia> ising = ABSTRACT_OP(4; name="Ising Model", pbc=true) + TERM("ZZ") + 0.3*TERM("X");
+
+julia> H = Operator(basis,ising)
+16×16 SparseArrays.SparseMatrixCSC{Complex{Float64},Int64} with 68 stored entries:
+  [1 ,  1]  =  4.0+0.0im
+  [2 ,  1]  =  0.3+0.0im
+  [3 ,  1]  =  0.3+0.0im
+  [5 ,  1]  =  0.3+0.0im
+  [9 ,  1]  =  0.3+0.0im
+  [1 ,  2]  =  0.3+0.0im
+  [4 ,  2]  =  0.3+0.0im
+  [6 ,  2]  =  0.3+0.0im
+  [10,  2]  =  0.3+0.0im
+  ⋮
+  [7 , 15]  =  0.3+0.0im
+  [11, 15]  =  0.3+0.0im
+  [13, 15]  =  0.3+0.0im
+  [16, 15]  =  0.3+0.0im
+  [8 , 16]  =  0.3+0.0im
+  [12, 16]  =  0.3+0.0im
+  [14, 16]  =  0.3+0.0im
+  [15, 16]  =  0.3+0.0im
+  [16, 16]  =  4.0+0.0im
+
+
+julia> Sz4 = ABSTRACT_OP(4,"Z",2);
+
+julia> observable = Operator(basis,Sz4)
+16×16 SparseArrays.SparseMatrixCSC{Complex{Float64},Int64} with 16 stored entries:
+  [1 ,  1]  =  1.0+0.0im
+  [2 ,  2]  =  1.0+0.0im
+  [3 ,  3]  =  1.0+0.0im
+  [4 ,  4]  =  1.0+0.0im
+  [5 ,  5]  =  -1.0+0.0im
+  [6 ,  6]  =  -1.0+0.0im
+  [7 ,  7]  =  -1.0+0.0im
+  [8 ,  8]  =  -1.0+0.0im
+  [9 ,  9]  =  1.0+0.0im
+  [10, 10]  =  1.0+0.0im
+  [11, 11]  =  1.0+0.0im
+  [12, 12]  =  1.0+0.0im
+  [13, 13]  =  -1.0+0.0im
+  [14, 14]  =  -1.0+0.0im
+  [15, 15]  =  -1.0+0.0im
+  [16, 16]  =  -1.0+0.0im
+
+```
+
+
+See also: [`ABSTRACT_OP`](@ref), [`BASIS`](@ref).
 """
-function construct_matrix(
-    basis :: Basis, 
+function Operator(
+    basis :: BASIS, 
     abstract_op :: ABSTRACT_OP)
 
     #this should eventually decide if the operator satisfies the symmetries
@@ -190,7 +245,7 @@ end
 
 Internal function to construct a Hamiltonian with symmetries.
 """
-function construct_matrix_sym(basis :: Basis, abstract_op :: ABSTRACT_OP)
+function construct_matrix_sym(basis :: BASIS, abstract_op :: ABSTRACT_OP)
     #L - length of the spin chain
     #basis - basis Dict
     #reps - represenatives of conjugacy classes Dict
@@ -253,11 +308,11 @@ const pauli_plus = sparse([0 2.0; 0 0])
 const pauli_minus = sparse([0 0; 2.0 0])
 
 
-###also do spinless fermions
+# ###also do spinless fermions
 
-const cdag_op = sparse([0 2.0; 0 0])
-const c_op = sparse([0 0; 2.0 0])
-const number_op = sparse([1.0 0.0; 0.0 0.0])
+# const cdag_op = sparse([0 2.0; 0 0])
+# const c_op = sparse([0 0; 2.0 0])
+# const number_op = sparse([1.0 0.0; 0.0 0.0])
 
 
  
@@ -275,12 +330,12 @@ function get_pauli_matrix(name :: String)
             return pauli_plus
         elseif name == "-"
             return pauli_minus
-        elseif name == "C" #destroy spinless fermions
-            return c_op
-        elseif name == "D" #C dagger
-            return cdag_op
-        elseif name == "N"
-            return number_op
+        # elseif name == "C" #destroy spinless fermions
+        #     return c_op
+        # elseif name == "D" #C dagger
+        #     return cdag_op
+        # elseif name == "N"
+        #     return number_op
         else 
             error("Unsupported operator name: ",name)
         end
@@ -293,7 +348,7 @@ end
 
 An internal method to quickly make an operator for the full basis with no symmetry constraints. 
 """
-function construct_matrix_full(basis :: Basis, abstract_op :: ABSTRACT_OP)
+function construct_matrix_full(basis :: BASIS, abstract_op :: ABSTRACT_OP)
 
     dim = 2^basis.L
     H = spzeros(ComplexF64,dim,dim)
@@ -353,7 +408,7 @@ Makes a Hamiltonian from fermion bilinears. Only work for number-conserving Hami
 - 'basis :: Basis': the basis for the spin chain
 - 'abstract_op :: HAMILTONIAN': the abstract operator to implement
 """
-function construct_matrix_fermion_biliners(basis :: Basis, abstract_op :: ABSTRACT_OP)
+function construct_matrix_fermion_biliners(basis :: BASIS, abstract_op :: ABSTRACT_OP)
     dim = basis.L
     H = spzeros(ComplexF64,dim,dim)
 

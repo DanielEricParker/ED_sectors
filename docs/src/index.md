@@ -2,8 +2,13 @@
 
 ```@contents
 Pages = [
-	"utilities.md",
-	"abstract_operators.md",
+		"index.md",
+		"abstract_operators.md",
+		"basis.md",
+		"matrix_constructors.md",
+		"measurement.md",
+		"dynamics.md",
+		"utilities.md"
 ]
 Depth = 1
 ```

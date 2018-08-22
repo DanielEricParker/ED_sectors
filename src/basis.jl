@@ -1,31 +1,38 @@
 #################### Data Structures ############################
 
+"""
+	BASISVECTOR(conj_class, phase_factor)
 
-struct BasisVector
-    #type for linking a basis vector to it's conjugacy class
-    conj_class :: UInt64 ##conjugacy class for the element
-    phase_factor :: ComplexF64 ##phase factor to translate
+A struct that links a basis vector to its conjugacy class `conj_class' and gives the phase factor 'phase_factor' between them due to the representation.
+
+"""
+struct BASISVECTOR
+    conj_class :: UInt64
+    phase_factor :: ComplexF64
 end
-Base.show(io::IO, bv::BasisVector) = print(io, "BV[",bv.conj_class, ", ", bv.phase_factor, "]")
+Base.show(io::IO, bv::BASISVECTOR) = print(io, "BV[",bv.conj_class, ", ", bv.phase_factor, "]")
 
+"""
+	CONJCLASS(index,norm)
 
-struct ConjClass
-    #type for describing the conjugacy class of a basis element
-    index :: Int64 #index of this element in the Hamiltonian matrix
-    norm :: Int #norm^2 of the class so we can normalize it properly
+A struct that describes the conjugacy class of a basis element. With symmetries, each conjugacy class is associated to a basis vector. The `index` is the index of the associated basis vector and the `norm` is the *norm squared* of that conjugacy class, so it can be properly normalized.
+"""
+struct CONJCLASS
+    index :: Int64
+    norm :: Int
 end
-Base.show(io::IO, cc::ConjClass) = print(io, "cc[ind:", cc.index,", norm:", cc.norm, "]")
+Base.show(io::IO, cc::CONJCLASS) = print(io, "cc[ind:", cc.index,", norm:", cc.norm, "]")
 
+"""
+	ORBIT(norm, representative, elements)
 
-
+A struct which stores the orbit of a single element under an Abelian group action.
+"""
 struct ORBIT
-	#type for storing the orbit of a single element under a group action
 	norm :: Int
 	representative :: UInt64
 	elements :: Dict{UInt64,ComplexF64}
 end
-
-
 Base.show(io::IO,orb::ORBIT) = print(io,
 "ORBIT[",
 "\n\tnorm: ", orb.norm,
@@ -260,12 +267,15 @@ end
 
 """
 	get_valid_state_function(L, unitCellSize,, symmetries)
-#Arguments
-* 'L :: Int': length of the chain
-* 'unitCellSize:: Int' - size of the unit cell, must divide L
-* 'symmetries :: Dict{String,Int}': a dictionary of the symmetries and their sectors, e.g ["Sz"=> 2,"K"=>2]
 
-Returns a function states -> Bool that determines if a state is valid, i.e. satisfies the constraint imposed by the symmetry sector.
+
+Returns a function  `states -> Bool` that determines if a state is valid, i.e. satisfies the constraint imposed by the symmetry sector.
+
+# Arguments
+- 'L :: Int': length of the chain
+- 'unitCellSize:: Int' - size of the unit cell, must divide L
+- 'symmetries :: Dict{String,Int}': a dictionary of the symmetries and their sectors, e.g ["Sz"=> 2,"K"=>2]
+
 """
 function get_valid_state_function(L :: Int, unitCellSize :: Int, symmetries :: Dict{String,Int})
     #L - length
@@ -292,13 +302,13 @@ end
 
 	make_easy_orbit_function(L,unitCellSize,symmetries)	
 
-#Arguments
-* 'L :: Int': length of the chain
-* 'unitCellSize:: Int' - size of the unit cell, must divide L
-* 'symmetries :: Dict{String,Int}': a dictionary of the symmetries and their sectors, e.g ["Sz"=> 2,"K"=>2]
+Given the symmetry information, returns a function which computes the orbit of an individual element. Works for valid basis elements only.
 
-Given the symmetry information, returns a function which computes
-the orbit of an individual element. Works for valid basis elements only.
+# Arguments
+- 'L :: Int': length of the chain
+- 'unitCellSize:: Int' - size of the unit cell, must divide L
+- 'symmetries :: Dict{String,Int}': a dictionary of the symmetries and their sectors, e.g ["Sz"=> 2,"K"=>2]
+
 """
 function make_easy_orbit_function(
 	L :: Int,
@@ -310,19 +320,20 @@ function make_easy_orbit_function(
 	G_size = 1
 
 	for (name,sector) in symmetries
-		if name == "Z2A"
+		if name == "PA"
 			sym_fcn = make_Z2A_function(L,sector)
 			sub_gp_size = 2
-		elseif name == "Z2B"
+		elseif name == "PB"
 			sym_fcn = make_Z2B_function(L,sector)
 			sub_gp_size = 2
-		elseif name == "Inv"
+		elseif name == "I"
 			sym_fcn = make_Inversion_function(L,sector,unitCellSize)
 			sub_gp_size = 2
-		elseif name == "Z2"
+		elseif name == "P"
 			sym_fcn = make_spin_flip_function(L,sector)
 			sub_gp_size = 2
-		elseif name == "K"
+		elseif name == "Tr"
+			@assert L % unitCellSize == 0 "Unit cell size $(unitCellSize) does not divide the number of spins $(L)."
 			sym_fcn = make_translation_function(L,unitCellSize,sector)
 			sub_gp_size = div(L,unitCellSize)
 		end
@@ -383,49 +394,143 @@ function make_easy_orbit_function(
 		return Nullable(orb)
 	end
 end
+# ###eventually it would be good to come back to this and optimize for efficiency,
+# #e.g. make the inner loops into their own funcitons
+# """
+# 	make_basis(L; [unitCellSize=a, syms=Symmetries_Dict, constraint=constraint_function])
 
+# Produces a basis from its symmetry information and a function that constrains the Hilbert space.
+# # Arguments
+# - 'L :: Int': the number of sites
+# - 'unitCellSize :: Int': the number of sites per unit cell
+# - 'syms :: Dict{String,Int}': a dictionary of symmetries with their sector names, e.g. the translation sector 3 is "K" => 3
+# - 'constraint :: Function': a function (state, L) -> bool to determine if a given state satisfies a constraint
+# """
 
 ####Type for storing bases, together with its constructor
 
-struct Basis
+"""
+		BASIS(L;
+		a :: Int64 = 1,
+		syms :: Dict{String,Int} = (),
+		constraint :: Function = identity
+		)
+
+A struct that stores a basis for a Hilbert space. A `BASIS` is constructed by specifiying its attributes.
+	- The number of spins `L`
+	- The number of spins per unit cell `a`, whose default is 1.
+	- Any symmetries of the basis, specified as a dictionary `syms`. The default is no symmetries.
+	- A constraint function `state :: UInt64 -> Bool` where only states where the constraint evaluates to `true` are admitted to the Hilbert space.
+
+Symmetries are specified by giving their name and sector. For instance, `"tr" => 3` represents the translation symmetry in sector 3, where one application of the symmetry moves the state around by 3 basis vectors. The complete list of implemented symmetries is below.
+
+| Symmetry   | Full Name                            | Values                    |
+|:----------:|--------------------------------------|:-------------------------:|
+| Tr         | Translation                          | ``1 \\le Tr \\le L/a``    |
+| P          | Parity (Spin flip)                   | ``\\{-1,1\\}``            |
+| I          | Inversion                            | ``\\{-1,1\\}``            |
+| Sz         | Total ``S^z``                        | ``-L \\le Sz \\le L``     |
+| PA         | P for even spins                     | ``\\{-1,1\\}``            |
+| PB         | P for odd spins                      | ``\\{-1,1\\}``            |
+| SzA        | ``\\sum_{i\\;\\mathrm{even}} S^z_i`` | ``-L/2 \\le SzA \\le L/2``|
+| SzB        | ``\\sum_{i\\;\\mathrm{odd}} S^z_i``  | ``-L/2 \\le SzB \\le L/2``|
+
+Using some symmetries requires extra conditions. Explicitly, translation symmetry requires periodic boundary conditions, and even/odd parity and spin sectors require a even number of total sites. However, multiple symmetries can be used at the same time.
+
+!!! warning "Index Convention"
+
+    Spins are zero-indexed, so the left-most site is spin zero and is in the "A" sublattice.
+
+Users can also supply arbitrary constraint functions `UInt64 -> Bool`, which specify states that are allowed in the Hilbert space. 
+
+!!! note
+
+    A `BASIS` can require a very large amount of memory to store. Internally, it is composed of one hashmap from states in the full Hilbert space to a representative of their conjugacy classes, and another from representatives of conjugacy classes to indices in the small Hilbert space.
+    Altogether, this requires 2^L space. For truly large sizes, one can --- in principle --- generate these hashmaps as needed, but this is not implemented yet here.
+
+# Examples
+```jldoctest
+julia> BASIS(8)
+BASIS[L: 8, a: 1, dim: 256, symmetries: none]
+
+julia> BASIS(8; a=2)
+BASIS[L: 8, a: 2, dim: 256, symmetries: none]
+
+julia> BASIS(8; syms = Dict("Tr"=>1))
+BASIS[L: 8, a: 1, dim: 30, symmetries: "Tr" => 1]
+
+julia> BASIS(8; a=2, syms = Dict("Tr"=>1))
+BASIS[L: 8, a: 2, dim: 60, symmetries: "Tr" => 1]
+
+julia> BASIS(8; syms = Dict("Sz" => 3, "Tr" => 2))
+BASIS[L: 8, a: 1, dim: 7, symmetries: "Sz" => 3, "Tr" => 2]
+
+julia> cons_fcn = x -> x < 17;
+
+julia> BASIS(8; constraint = cons_fcn)
+BASIS[L: 8, a: 1, dim: 17, symmetries: "constrained" => 1]
+```
+"""
+struct BASIS
     #type for storing a basis with various quantum numbers
-    L :: Int64 #number of sites
-    unitCellSize :: Int64
-    get_conj_class :: Dict{UInt64,BasisVector} #gets basis vector for any state
-    conj_classes :: Dict{UInt64,ConjClass}    #gets index and norm of a conjugacy class
+    L :: Int #number of sites
+    a :: Int
+    get_conj_class :: Dict{UInt64,BASISVECTOR} #gets basis vector for any state
+    conj_classes :: Dict{UInt64,CONJCLASS}    #gets index and norm of a conjugacy class
     q_numbers :: Dict{String,Int} #list of quantum numbers for the state
     #e.g. q_numbers = [("K",1),("Sz",3)]
 
-    Basis(L :: Int64) = new(L,
+    function BASIS(
+    		L::Int
+    	)
+    		new(L,
     		1, 
-			Dict{UInt64,BasisVector}(),
-			Dict{UInt64,ConjClass}(),
+			Dict{UInt64,BASISVECTOR}(),
+			Dict{UInt64,CONJCLASS}(),
 			Dict{String,Int}())
-
-    Basis(L :: Int64,
-    		unitCellSize::Int64) = new(L,
-    		unitCellSize,
-			Dict{UInt64,BasisVector}(),
-			Dict{UInt64,ConjClass}(),
-			Dict{String,Int}())
-
+    	end
 
     #expose default constuctor
-    Basis(L :: Int64, #number of sites
-    	unitCellSize :: Int64,
-	    get_conj_class :: Dict{UInt64,BasisVector}, #gets basis vector for any state
-	    conj_classes :: Dict{UInt64,ConjClass},    #gets index and norm of a conjugacy class
-	    q_numbers :: Dict{String,Int}) = new(
+    function BASIS(
+    	L :: Int64,
+    	a :: Int64,
+	    get_conj_class :: Dict{UInt64,BASISVECTOR}, #gets basis vector for any state
+	    conj_classes :: Dict{UInt64,CONJCLASS},    #gets index and norm of a conjugacy class
+	    q_numbers :: Dict{String,Int}
+	    )
+    	new(
 		    L,
-	    	unitCellSize,
+	    	a,
 	    	get_conj_class,
 	    	conj_classes,
 	    	q_numbers)
+    end
 
-	Basis(L :: Int;
-		unitCellSize :: Int64 = 1,
-		syms :: Dict{String,Int} =  Dict{String,Int}(),
-		constraint :: Function = identity ) =  make_basis(L,unitCellSize=unitCellSize,syms=syms,constraint=constraint)
+	function BASIS(
+			L :: Int;
+			a :: Int64 = 1,
+			syms :: Dict{String,Int} =  Dict{String,Int}(),
+			constraint :: Function = identity
+		)
+		make_basis(L,unitCellSize=a,syms=syms,constraint=constraint)
+	end
+end
+
+function Base.show(
+	io::IO,
+	b::BASIS)
+	print(io, "BASIS[L: $(b.L), a: $(b.a), dim: $(length(b.conj_classes)), symmetries: ")
+	if b.q_numbers != Dict{String,Int64}()
+		for (n,(k,v)) in enumerate(b.q_numbers)
+			if n != 1
+				print(io,", ")
+			end
+			print(io,"\"$(k)\" => $(v)")
+		end
+	else
+		print(io,"none")
+	end
+	print(io,"]")
 end
 
 
@@ -435,12 +540,13 @@ end
 """
 	make_basis(L; [unitCellSize=a, syms=Symmetries_Dict, constraint=constraint_function])
 
-Produces a basis from its symmetry information and a function that constrains the Hilbert space.
-#Arguments
-* 'L :: Int': the number of sites
-* 'unitCellSize :: Int': the number of sites per unit cell
-* 'syms :: Dict{String,Int}': a dictionary of symmetries with their sector names, e.g. the translation sector 3 is "K" => 3
-* 'constraint :: Function': a function (state, L) -> bool to determine if a given state satisfies a constraint
+Internal function to produce a basis from its size, constraints, and symmetry information.
+
+# Arguments
+- 'L :: Int': the number of sites
+- 'unitCellSize :: Int': the number of sites per unit cell
+- 'syms :: Dict{String,Int}': a dictionary of symmetries with their sector names, e.g. the translation sector 3 is "K" => 3
+- 'constraint :: Function': a function (state, L) -> bool to determine if a given state satisfies a constraint
 """
 function make_basis(
 	L :: Int;  						#number of lattice sites
@@ -449,7 +555,7 @@ function make_basis(
 	# #name => sector, e.g. translation sector 3 is "K" => 3
 	syms :: Dict{String,Int} =  Dict{String,Int}(),
 	constraint :: Function = identity
-	):: Basis
+	):: BASIS
 
 	@assert L % unitCellSize == 0 "The unit cell size, $(unitCellSize), does not divide the number of spins, $(L)"
 
@@ -457,17 +563,23 @@ function make_basis(
 	#separate out the symemtries that simply restrict the Hilbert space
 	#hardcoded names for now, as only a few are implemented
 	validity_syms_names = ["Sz","SzA","SzB"]
-	symmetries_names = ["K","Z2","Z2A","Z2B","Inv"]
+	symmetries_names = ["Tr","P","PA","PB","I"]
 
 	validity_syms = filter( kv -> in(kv[1],validity_syms_names), syms)
 	symmetries = filter( kv -> in(kv[1],symmetries_names), syms)
+
+	for (k,v) in syms
+		@assert in(k,[validity_syms_names;symmetries_names]) "Invalid symmetry name $(k)"
+	end
+
+
 
     #get a function to figure out which states are vald
 	if constraint === identity
 	    is_valid_state = get_valid_state_function(L,unitCellSize,validity_syms)
 	else 
 		is_valid_state_built_in = get_valid_state_function(L,unitCellSize,validity_syms)
-		is_valid_state = x -> (constraint(x,L) && is_valid_state_built_in(x))
+		is_valid_state = x -> (constraint(x) && is_valid_state_built_in(x))
 	end
 
 
@@ -478,8 +590,8 @@ function make_basis(
     num_basis_elements :: Int = 0
 
     #initialize our Dicts
-	basis = Dict{UInt64,BasisVector}()
-    reps = Dict{UInt64,ConjClass}()
+	basis = Dict{UInt64,BASISVECTOR}()
+    reps = Dict{UInt64,CONJCLASS}()
 
     #loop over states in this sector
     for s in 0:(2^L)-1
@@ -503,12 +615,12 @@ function make_basis(
   				pf_rep = O_x[conj_class_x]
 				for (gx, pf_x) in O_x
 					#if is_valid_state(gx)
-					basis[gx] = BasisVector(conj_class_x, zchop(pf_rep/pf_x))
+					basis[gx] = BASISVECTOR(conj_class_x, zchop(pf_rep/pf_x))
 					#end
 				end
 
                 #offset by 1 for 1-indexing
-                reps[conj_class_x] =  ConjClass(num_basis_elements+1,norm_x)
+                reps[conj_class_x] =  CONJCLASS(num_basis_elements+1,norm_x)
 
                 #increment number of basis elements
                 num_basis_elements += 1
@@ -522,12 +634,14 @@ function make_basis(
 
     symmetries = merge(symmetries,validity_syms)
 
-	return Basis(L, unitCellSize, basis, reps, symmetries)
+	return BASIS(L, unitCellSize, basis, reps, symmetries)
 end
 
 
 """
-Checks if two bases are the same. Useful for debugging. I need to verify if this still works properly. It should
+	check_same_basis_debug(basis1,basis2)
+
+Checks if two bases are the same. UNTESTED! Use for debugging only.
 """
 function check_same_basis_debug(
 	basis1,

@@ -24,6 +24,10 @@ makedocs(
 	pages = [
 		"index.md",
 		"Abstract Operators" => "abstract_operators.md",
+		"Basis" => "basis.md",
+		"Matrix Constructors" => "matrix_constructors.md",
+		"Measurement" => "measurement.md",
+		"Dynamics" => "dynamics.md",
 		"Utilities" => "utilities.md"
 		],
 	)

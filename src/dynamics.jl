@@ -108,7 +108,7 @@ function correlation1pt(
 	t :: Float64,
 	Op :: SOP,
 	factor :: Float64,
-	basis :: Basis
+	basis :: BASIS
 	)
 
 	abstract_O = ABSTRACT_OP(basis.L,Op)

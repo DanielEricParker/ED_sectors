@@ -43,7 +43,7 @@ Function to make an observable with nice syntax.
 * 'site :: Int': starting site for the operator. 
 """
 function observable(
-	basis :: Basis,
+	basis :: BASIS,
 	op :: String,
 	site :: Int
 	)
@@ -90,7 +90,7 @@ function correlation1pt(
 	psi :: Array{Complex{Float64}},
 	op :: SOP,
 	factor :: Float64,
-	basis :: Basis
+	basis :: BASIS
 	)
 	len = length(psi)
 
@@ -114,7 +114,7 @@ function correlation_npt(
 	psi :: Array{Complex{Float64}},
 	Ops :: Array{SOP},
 	factor :: Float64,
-	basis :: Basis
+	basis :: BASIS
 	)
 
 end
@@ -129,7 +129,7 @@ function correlation_npt(
 	rho :: Array{Complex{Float64},2},
 	Ops :: Array{SOP},
 	factor :: Float64,
-	basis :: Basis
+	basis :: BASIS
 	)
 
 end
