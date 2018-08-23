@@ -7,7 +7,7 @@ Welcome to `ED_sectors`, a package which provides a fast and straightforward int
 
 Let's start off with a quick example of an `ED_sectors` program just to see how easy it can be. Let's take one of the most popular spin chains, the XXZ model:
 ```math
-H = \sum_{i=1}^L S_i^x S_{i+1}^x + S_i^y S_{i+1}^y + \Delta S_i^z S_{i+1}^z.
+H = -\sum_{i=1}^L S_i^x S_{i+1}^x + S_i^y S_{i+1}^y + \Delta S_i^z S_{i+1}^z.
 ```
 This has several symmetries, including translation and conservation of total spin ``S_{\mathrm{tot}} = \sum_i S_i^z``. We can easily take advantage of those to reduce the dimension of the Hilbert space.
 
@@ -19,7 +19,7 @@ basis = BASIS(L; syms = Dict("Sz" => 1, "Tr" => 2))
 
 #create an abstract representation of the XXZ Hamiltonian
 XXZ = ABSTRACT_OP(L; name = "XXZ", pbc = true)
-XXZ += TERM("XX") + TERM("YY") + 0.3TERM("ZZ")
+XXZ -= TERM("XX") - TERM("YY") - 0.3TERM("ZZ")
 
 #construct an explicit matrix for the operator in the chosen basis
 H = Operator(XXZ, basis)

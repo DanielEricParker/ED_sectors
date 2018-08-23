@@ -10,11 +10,11 @@ Welcome to `ED_sectors`, a package which provides a fast and straightforward int
 
 ## Quick Example
 
-Let's start off with a quick example of an `ED_sectors` program just to see how easy it can be. Let's take one of the most popular spin chains, the XXZ model:
-```math
+Let's start off with a quick example of an `ED_sectors` program just to see how easy it can be. Let's take one of the most popular spin chains, the XXZ or model:
+```LaTeX
 H = \sum_{i=1}^L S_i^x S_{i+1}^x + S_i^y S_{i+1}^y + \Delta S_i^z S_{i+1}^z.
 ```
-This has several symmetries, including translation and conservation of total spin ``S_{\mathrm{tot}} = \sum_i S_i^z``. We can easily take advantage of those to reduce the dimension of the Hilbert space.
+This has several symmetries, including translation and conservation of total spin Sz. We can easily take advantage of those to reduce the dimension of the Hilbert space.
 
 ```julia
 L = 16 #length of the spin chain
@@ -64,21 +64,6 @@ Eventually `ED_sectors` will be a true Julia package, but for now you need to in
    push!(LOAD_PATH,"[your path to ED_sectors here]/src/")
    using ED_sectors
    ```
-
-## Contents
-
-To learn about the "moving pieces" in `ED_sectors`, please see the Tutorial. More advanced user may wish to consult the Full API documentation. Many common computations are already built-in, including computing entanglement entropy, autocorrelations in time, measurements at temperature, and finding phase transitions! In the case you need to extend the functionality, the internal functions and datatypes are documented under Internals.
-
-
-```@contents
-
-```
-
-```@meta
-DocTestSetup = quote
-	using ED_sectors
-end
-```
 
 
 This package was created by Daniel E. Parker at UC Berkeley. Special thanks to Thomas Scaffidi and Romain Vasseur for inspiring me to create this package and testing out much of its functionality.
