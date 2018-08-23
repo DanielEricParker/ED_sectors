@@ -21,7 +21,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Overview",
     "title": "Quick Example",
     "category": "section",
-    "text": "Let\'s start off with a quick example of an ED_sectors program just to see how easy it can be. Let\'s take one of the most popular spin chains, the XXZ model:H = sum_i=1^L S_i^x S_i+1^x + S_i^y S_i+1^y + Delta S_i^z S_i+1^zThis has several symmetries, including translation and conservation of total spin S_mathrmtot = sum_i S_i^z. We can easily take advantage of those to reduce the dimension of the Hilbert space.L = 16 #length of the spin chain\n\n#create the basis with total Sz = +21and work in the second translation sector\nbasis = BASIS(L; syms = Dict(\"Sz\" => 1, \"Tr\" => 2))\n\n#create an abstract representation of the XXZ Hamiltonian\nXXZ = ABSTRACT_OP(L; name = \"XXZ\", pbc = true)\nXXZ += TERM(\"XX\") + TERM(\"YY\") + 0.3TERM(\"ZZ\")\n\n#construct an explicit matrix for the operator in the chosen basis\nH = Operator(XXZ, basis)\n\n#get the ground state energy and wavefunction\n(E_0, psi_0) = k_eigvals(H,1)\n\n#compute the magnetization in the ground state\n\nS_tot = Operator(TERM(\"Z\"),basis)\n\nmag_Z = expectation(S_tot,psi_0)In only a few lines we can define a basis, create a Hamiltonian, find its ground state, and measure expectation values. See the Tutorial or the Full API to learn more!"
+    "text": "Let\'s start off with a quick example of an ED_sectors program just to see how easy it can be. Let\'s take one of the most popular spin chains, the XXZ model:H = -sum_i=1^L S_i^x S_i+1^x + S_i^y S_i+1^y + Delta S_i^z S_i+1^zThis has several symmetries, including translation and conservation of total spin S_mathrmtot = sum_i S_i^z. We can easily take advantage of those to reduce the dimension of the Hilbert space.L = 16 #length of the spin chain\n\n#create the basis with total Sz = +21and work in the second translation sector\nbasis = BASIS(L; syms = Dict(\"Sz\" => 1, \"Tr\" => 2))\n\n#create an abstract representation of the XXZ Hamiltonian\nXXZ = ABSTRACT_OP(L; name = \"XXZ\", pbc = true)\nXXZ -= TERM(\"XX\") - TERM(\"YY\") - 0.3TERM(\"ZZ\")\n\n#construct an explicit matrix for the operator in the chosen basis\nH = Operator(XXZ, basis)\n\n#get the ground state energy and wavefunction\n(E_0, psi_0) = k_eigvals(H,1)\n\n#compute the magnetization in the ground state\n\nS_tot = Operator(TERM(\"Z\"),basis)\n\nmag_Z = expectation(S_tot,psi_0)In only a few lines we can define a basis, create a Hamiltonian, find its ground state, and measure expectation values. See the Tutorial or the Full API to learn more!"
 },
 
 {
@@ -53,7 +53,79 @@ var documenterSearchIndex = {"docs": [
     "page": "Tutorial",
     "title": "Tutorial",
     "category": "section",
-    "text": "DocTestSetup = quote\n	using ED_sectors\nend"
+    "text": "Pages = [\"tutorial.md\"]\nDepth = 2DocTestSetup = quote\n	using ED_sectors\nend"
+},
+
+{
+    "location": "tutorial.html#Overview,-or-Big-Matrices-are-Hard-1",
+    "page": "Tutorial",
+    "title": "Overview, or Big Matrices are Hard",
+    "category": "section",
+    "text": "This tutorial will introduce the basic functionality of the ED_sectors package. It is self-contained from a programming perspective, but assumes some knowledge of quantum mechanics.If you\'re already familiar with spin chains and some of their computational difficulties, you may wish to skip to the Abstract Operators section below.Recall that the time-independent Schrodinger Equation	left H psi_nright = E_n left psi_nrightdetermines the main physical quantities –- the energy eigenvalues and energy eigenstates of our system. Our main task is to solve this eigenvalue problem. For a spin-1/2 chain, the Hilbert space of L is mathcalH = otimes_i=0^L-1 mathbbC^2, whose dimension is N = 2^L. Solving the eigensystem for H naively requires O(N^3) time and O(N^2) space. In practical terms, one cannot solve this beyond about L = 16 on a desktop and perhaps L = 26 on the largest supercomputers, mostly due to the memory constraints. To understand a spin chain, we often want to be as close to the thermodynamic limit, L to infty as possible. Bigger, in this case, is better. However, the infamous exponential increase in the size of the Hilbert space limits us to very small systems. That is, unless we do something more clever."
+},
+
+{
+    "location": "tutorial.html#How-to-be-clever-1",
+    "page": "Tutorial",
+    "title": "How to be clever",
+    "category": "section",
+    "text": "There are several ways we can be more clever and reach larger system sizes. "
+},
+
+{
+    "location": "tutorial.html#Few-Eigenstate-Approaches-1",
+    "page": "Tutorial",
+    "title": "Few-Eigenstate Approaches",
+    "category": "section",
+    "text": "The simplest thing to do is to cut down on what information we need. Oftentimes, the ground state of a system is the only interest part and the rest is irrelevant; computing only a single eigenvalue is much easier than finding 2^L.One can show that, starting with any state leftphiright, then repeatedly acting on it with e^-epsilon H approx 1 - epsilon H for some small epsilon  0, we will eventually converge to the ground state:lim_N to infty left( 1 - epsilon H right)^N leftphiright = left0rightPhysically, multiplication by e^-epsilon H performs imaginary time-evolution, which cools down the system until it is stuck in its ground state. Notice, however, that all we need here is a single vector leftphiright and the matrices we multiply it by are generically very sparse, so they are small to store and quick to multiply. This suggests that we can do much better than the naive O(N^3) expectation above.The Lanczos Algorithm https://en.wikipedia.org/wiki/Lanczos_algorithm does exactly this. It gives a very quick way to find the smallest k eigenvalues and eigenvector while employing only matrix-vector multiplication rather than matrix-matrix multiplication and is therefore much, much faster than finding the full spectrum. (Actual runtime estimates are hard to find, but wikipedia estimates it as O(Nkd) where N is the size of the matrix, k eigenvectors are computed, and d is the density of the matrix.) In practice, on can find the ground states of chains of length L = 22 in a few minutes on a modern desktop.The limit here is usually storing the Hamiltonian matrix rather than the time to perform the computation. Some codes therefore implement \"on-the-fly\" construction of the matrix where the full matrix is never stored, but recomputed one row at a time during each matrix-vector multiplication. This can further extend the number of spins considered."
+},
+
+{
+    "location": "tutorial.html#Symmetries-1",
+    "page": "Tutorial",
+    "title": "Symmetries",
+    "category": "section",
+    "text": "Unfortunately, there are two common situations where this is insufficient. If one cares about dynamical questions, then we often need to multiply by the propagator U(t) = e^-i H t. If we know all the eigenvalues E_n and the (unitary) matrix of eigenvectors V, thenU(t) = V D(t) V^daggerwhere D(t) is the diagonal matrix whose elements are e^-i E_n t. Since multiplying by diagonal matrices is quite fast, this means time-evolution is \"only\" a single matrix-matrix multiplication and, moreover, this is probably about the best one can do. The problem is, finding the full eigensystem is still a very hard operation, so we want to think about how to reduce its complexity as much as possible. Perhaps the best way to do this is to take advantage of symmetries of the problem.note: Note\nAn alternative approach is to give up on exact answers and instead perform approximate time-evolution. It turns out there is a clever way to do this using the Lanczos algorithm as well. Using this, one can reach times around t sim 10^4J where J is the energy scale of a single spin.This is implemented in the quantum dynamite package at https://dynamite.readthedocs.io/en/latest/. This method is particularly amenable to parallelization, enabling systems of size L sim 30.To understand the role of symmetries, let\'s consider an example which will follow us through the rest of the tutorial: the XXZ spin chain:H = -sum_i=1^L S_i^x S_i+1^x + S_i^y S_i+1^y + Delta S_i^z S_i+1^zFor the uninitiated, the XXZ chain is a model for quantum magnetism in one dimension and is one of the most-studied models in condensed matter physics. One of its crucial features is that the total spinS_mathrmtot = sum_i S_i^zis a conserved quantity. (One can check explicitly that S_mathrmtot H = 0.) This symmetry partitions out Hilbert space. The 2^L states each have a representation in the S^z basis with a definite number of spin ups. For instance, the state leftuparrowuparrowdownarrowuparrowdownarrowright has S^z = 3. In the jargon, S^z is a \"good quantum number\" for this model, and has a range -L le S^z le L. There is exactly one state (all up) with S^z = L, L states with S^z = L-1 and, generically, binomLk states with S^z = k, for a total of 2^L.We can then think of our Hilbert space mathcalH as made up of the direct sum of smaller Hilbert spaces mathcalH_k of size binomLk, i.e.mathcalH = mathcalH_-L oplus cdots mathcalH_L-1 oplus mathcalH_LThe fact that S^z is conserved means that the Hamiltonian act on a vector in one S^z-sector mathcalH_a and end up with a vector with any components in some other S^z-sector mathcalH_b. Let\'s think about what this means in terms of explicit matrices. If we choose a basis for mathcalH which is made by concatenating the bases for each of the mathcalH_k in order, then the Hamiltonian will be block diagonal:beginpmatrix\nH_-L 	 0 		 cdots  0\n0		 H_L-1	 cdots  0\nvdots 	 vdots	 ddots  vdots \n0 		 0 	 cdots  0  H_L\nendpmatrixwhere each block matrix H_k is the projection of H to the sector with k spins up.In this form, it is easy to see the benefit: solving the eigenvalue problem for H is now reduced to solving the problem for each of the H_k\'s. For L = 24, the size of the largest block is binom2412 approx 2^21, a substantial reduction in the difficulty of the problem!Here we worked with the particular example of the S_mathrmtot symmetry, but the idea is general. Every (Abelian) symmetry of the problem can be used to further reduce the sizes of the diagonal blocks involved. The most common other symmetries are translation, parity, and inversion. Using some combination of these, one can often reduce the effective size of the system by 2 to 5 spins, and sometimes more. I believe the world record with this method is around L = 48. While a few extra spins might not seem like a lot, consider that most dynamical simulations max out at L = 14. In comparison, working with L = 20 is a huge improvement!The downside of this method is that actually putting the matrix into a block-diagonal form requires a lot of bookkeeping. In fact, the S_mathrmtot example was chosen above since it is particularly simple. Generically, finding the block-diagonal form of the matrix involves a fairly complicated and non-local change of basis. Its form is dictated by the (projective) representations of the finite symmetry groups. note: Note\nThe purpose of this package is to abstract away this troublesome procedure. With ED_sectors, finding a single symmetry block of the Hamiltonian can be done in a single line."
+},
+
+{
+    "location": "tutorial.html#Abstract-Operators-1",
+    "page": "Tutorial",
+    "title": "Abstract Operators",
+    "category": "section",
+    "text": "Let\'s now dispense with the motivation and get down to the business of explaining how this packages works and what its important commands are."
+},
+
+{
+    "location": "tutorial.html#Choosing-Bases-1",
+    "page": "Tutorial",
+    "title": "Choosing Bases",
+    "category": "section",
+    "text": ""
+},
+
+{
+    "location": "tutorial.html#Making-Matrices-1",
+    "page": "Tutorial",
+    "title": "Making Matrices",
+    "category": "section",
+    "text": ""
+},
+
+{
+    "location": "tutorial.html#Measurements-1",
+    "page": "Tutorial",
+    "title": "Measurements",
+    "category": "section",
+    "text": ""
+},
+
+{
+    "location": "tutorial.html#Dynamics-1",
+    "page": "Tutorial",
+    "title": "Dynamics",
+    "category": "section",
+    "text": ""
 },
 
 {
