@@ -21,7 +21,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Overview",
     "title": "Quick Example",
     "category": "section",
-    "text": "Let\'s start off with a quick example of an ED_sectors program just to see how easy it can be. Let\'s take one of the most popular spin chains, the XXZ model:H = -sum_i=1^L S_i^x S_i+1^x + S_i^y S_i+1^y + Delta S_i^z S_i+1^zThis has several symmetries, including translation and conservation of total spin S_mathrmtot = sum_i S_i^z. We can easily take advantage of those to reduce the dimension of the Hilbert space.L = 16 #length of the spin chain\n\n#create the basis with total Sz = +21and work in the second translation sector\nbasis = BASIS(L; syms = Dict(\"Sz\" => 1, \"Tr\" => 2))\n\n#create an abstract representation of the XXZ Hamiltonian\nXXZ = ABSTRACT_OP(L; name = \"XXZ\", pbc = true)\nXXZ -= TERM(\"XX\") - TERM(\"YY\") - 0.3TERM(\"ZZ\")\n\n#construct an explicit matrix for the operator in the chosen basis\nH = Operator(XXZ, basis)\n\n#get the ground state energy and wavefunction\n(E_0, psi_0) = k_eigvals(H,1)\n\n#compute the magnetization in the ground state\n\nS_tot = Operator(TERM(\"Z\"),basis)\n\nmag_Z = expectation(S_tot,psi_0)In only a few lines we can define a basis, create a Hamiltonian, find its ground state, and measure expectation values. See the Tutorial or the Full API to learn more!"
+    "text": "Let\'s start off with a quick example of an ED_sectors program just to see how easy it can be. Let\'s take one of the most popular spin chains, the XXZ model:H = -sum_i=1^L S_i^x S_i+1^x + S_i^y S_i+1^y + Delta S_i^z S_i+1^zThis has several symmetries, including translation and conservation of total spin S_mathrmtot = sum_i S_i^z. We can easily take advantage of those to reduce the dimension of the Hilbert space.L = 16 #length of the spin chain\n\n#create the basis with total Sz = +21and work in the second translation sector\nbasis = BASIS(L; syms = Dict(\"Sz\" => 1, \"Tr\" => 2))\n\n#create an abstract representation of the XXZ Hamiltonian\nXXZ = ABSTRACT_OP(L; name = \"XXZ\", pbc = true)\nXXZ -= TERM(\"XX\") - TERM(\"YY\") - 0.3TERM(\"ZZ\")\n\n#construct an explicit matrix for the operator in the chosen basis\nH = Operator(XXZ, basis)\n\n#get the ground state energy and wavefunction\n(E_0, psi_0) = ground_state(H)\n\n#compute the magnetization in the ground state\n\nS_tot = Operator(TERM(\"Z\"),basis)\n\nmag_Z = expectation(S_tot,psi_0)In only a few lines we can define a basis, create a Hamiltonian, find its ground state, and measure expectation values. See the Tutorial or the Full API to learn more!"
 },
 
 {
@@ -57,9 +57,9 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "tutorial.html#Overview,-or-Big-Matrices-are-Hard-1",
+    "location": "tutorial.html#Overview-or:-Big-Matrices-are-a-Big-Problem-1",
     "page": "Tutorial",
-    "title": "Overview, or Big Matrices are Hard",
+    "title": "Overview or: Big Matrices are a Big Problem",
     "category": "section",
     "text": "This tutorial will introduce the basic functionality of the ED_sectors package. It is self-contained from a programming perspective, but assumes some knowledge of quantum mechanics.If you\'re already familiar with spin chains and some of their computational difficulties, you may wish to skip to the Abstract Operators section below.Recall that the time-independent Schrodinger Equation	left H psi_nright = E_n left psi_nrightdetermines the main physical quantities –- the energy eigenvalues and energy eigenstates of our system. Our main task is to solve this eigenvalue problem. For a spin-1/2 chain, the Hilbert space of L is mathcalH = otimes_i=0^L-1 mathbbC^2, whose dimension is N = 2^L. Solving the eigensystem for H naively requires O(N^3) time and O(N^2) space. In practical terms, one cannot solve this beyond about L = 16 on a desktop and perhaps L = 26 on the largest supercomputers, mostly due to the memory constraints. To understand a spin chain, we often want to be as close to the thermodynamic limit, L to infty as possible. Bigger, in this case, is better. However, the infamous exponential increase in the size of the Hilbert space limits us to very small systems. That is, unless we do something more clever."
 },
@@ -89,27 +89,27 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "tutorial.html#Abstract-Operators-1",
+    "location": "tutorial.html#Defining-Hamiltonians:-Abstract-Operators-1",
     "page": "Tutorial",
-    "title": "Abstract Operators",
+    "title": "Defining Hamiltonians: Abstract Operators",
     "category": "section",
-    "text": "Let\'s now dispense with the motivation and get down to the business of explaining how this packages works and what its important commands are."
+    "text": "Let\'s now dispense with the motivation and get down to the business of explaining how this packages works and what its important commands are. We will start with defining Hamiltonians. For a spin chain of length L, the space of Hamiltonians has dimension 4^L – its huge! Physically interesting Hamiltonians, however, are only a small corner of this space. They tend to be translation invariant, or at least nearly so, and involve only local or quasi-local interactions. In practice, then, they are usually a sum of a few terms. Similarly, most observables involve only a few sites, or perhaps a sum of the same few-site operator translated across the system. In ED_sectors we adopt a syntax designed to make writing physical Hamiltonians and common observables as easy as possible.To do this, we have two main data structures: ABSTRACT_OP\'s and TERM\'s. The former, short for \"abstract operator\", is a representation of an operator as a string of Pauli matrices and, just how a Hamiltonian is written as a sum of individual terms, an ABSTRACT_OP is made by adding TERMs together.As an example, let\'s define the XXZ Hamiltonian mentioned above:XXZ = ABSTRACT_OP(8)\nXXZ += TERM(\"XX\")\nXXZ += TERM(\"YY\")\nXXZ += 0.3*TERM(\"ZZ\")In the first line, we create an abstract operator with 16 sites and, by default, periodic boundary conditions. We then add three terms to the Hamiltonian which are automatically translated across all sites.ABSTRACT_OPs have a choice of either periodic or open boundary conditions, which is easily adjusted with an optional argument. Additionally, we can give abstract operators names to make them easier to debug. For detailed documentation, see ABSTRACT_OP.ising = ABSTRACT_OP(15; name=\"Ising Model\", pbc=false) + TERM(\"ZZ\") + TERM(\"X\")Just like real Hamiltonians, we can add abstract operators together, or multiply them by a (complex) prefactor. For instance, we can easily define a magnetic field in the Z direction, adjust its magnitude, and add it on to our XXZ operator.magnetic_field = ABSTRACT_OP(8) + TERM(\"Z\")\nmagnetic_field_2 = 0.1*magnetic_field\nXXZ_B = XXZ + magnetic_field_2This syntax is great for creating relatively complex operators, like Hamiltonians. But individual observables are often much simpler and often live only on a single site or a few sites. For this situation, there is a notational shortcut.middle_field = ABSTRACT_OP(8,\"Z\",4)This creates the operator S_4^z in a single line. Alternatively, a single TERM can be supplied instead. With this we can easily define, for instance, an order parameter tfrac1L sum_i S_i^z.magnetic_order_parameter = ABSTRACT_OP(8,(1/8)*TERM(\"Z\"))To create all the different types of operators you might encounter in the course of your day-to-day spin chain exploration, there are several different ways to make TERM\'s. Some examples are provided here, and all the options are spelled out at TERM.Example Result\nTERM(\"ZZ\") displaystyle sum_i=0^L-1 S_i^z S_i+1^z\nTERM(\"ZIZ\",4) S_4^z S^z_6\nTERM(3.0,\"X\",3) displaystyle3 sum_i=3^L-1 S_i^x\nTERM(\"YY\",3,repeat=2) displaystylesum_substacki=2 i mathrm even S_i^y S_i+1^y\nTERM(4.3,\"ZXZ\",5,repeat=3) displaystyle 43 sum_substacki=5 i equiv 0 pmod 3^L-1 S_i^z S_i+1^x S_i+2^z\nTERM(0.5,Dict(1=>\"X\", 7=>\"X)) S_1^x S_7^x\nTERM(0.5,Dict(1=>\"X\", 7=>\"X); repeat = 1) displaystyle sum_i=1^L-1 S_i^x S_i+7^xThe several different ways of making TERM\'s shown here are general enough to make any Hamiltonian, even if it has next-next-nearest neighbor interactions, isn\'t translationally invariant, or other unusual possibilities. If the most convenient syntax is insufficient then, as shown in the last two examples, one can define terms based on a dictionary Dict(site => \"op\"). Adding these together can make any operator whatsoever.warning: Index Convention\nAbstract operators are zero-indexed. The left-most spin is spin 0 and, in a chain of length L, the right-most spin has index L-1.warning: Boundary Conditions\nThe above examples use periodic boundary conditions. In that case, all indices larger than L-1 will wrap around, i.e. indices should be interpreted pmod L.With open boundary conditions, however, all terms whose indices exceed L-1 will simply be dropped. "
 },
 
 {
-    "location": "tutorial.html#Choosing-Bases-1",
+    "location": "tutorial.html#Symmetries-and-Bases-1",
     "page": "Tutorial",
-    "title": "Choosing Bases",
+    "title": "Symmetries and Bases",
     "category": "section",
-    "text": ""
+    "text": "Making a BASIS is as easy as specifying the number of sites. Optionally, one can also include the size of the unit cell, symmetries, and a constraint on which sites are allowed in the Hilbert space.For instance, making a basis for 16 spins is justBASIS(16)As discussed extensively above, however, the real purpose of making a basis in exact diagonalization is to take symmetries into account. There are a number of symmetries built-in, which we now list in a convenient table.Name Symmetry Values Generator\nTr Translation 1 le t le La S_i^mu to S_i+t pmodLa\nP Parity (Spin flip) -11 displaystyle prod_i=0^L-1 S_i^x\nI Inversion -11 S_i^mu to S_L-1-i^mu\nSz Total S^z -L le Sz le L n/a; counts sum_i=0^L-1 S_i^z\nPA P for even spins -11 displaystyle prod_substacki=0 i equiv 0 pmod 2^L-1 S_i^x\nPB P for odd spins -11 displaystyle prod_substacki=0 i equiv 1 pmod 2^L-1 S_i^x\nSzA S^z for even spins -L2 le SzA le L2 n/a; counts displaystylesum_substacki=0 i equiv 0 pmod 2^L-1 S_i^z\nSzB S^z for odd spins -L2 le SzB le L2 n/a; counts displaystylesum_substacki=0 i equiv 1 pmod 2^L-1 S_i^zTo make a basis for the third translation sector and odd parity sector for instance, is simplybasis_sym = BASIS(16; syms=Dict(\"Tr\" => 3, \"P\" => -1))One can also add custom constraints onto the Hilbert space. Suppose, for instance, you wanted to use the \"Rydberg constraint\" that two adjacent spins cannot both point up at once. After designing a function to test for that, it can be easily used to make bases satisfying those constraints.function test_Rydberg(state) :: Bool\n	[...]\nend\n\nbasis_Rydberg = BASIS(24; constraint = test_Rydberg)More information about making bases can be found at BASIS](@ref)."
 },
 
 {
-    "location": "tutorial.html#Making-Matrices-1",
+    "location": "tutorial.html#Making-Actual-Matrices-1",
     "page": "Tutorial",
-    "title": "Making Matrices",
+    "title": "Making Actual Matrices",
     "category": "section",
-    "text": ""
+    "text": "Making actual matrices is done by specifiying the abstract operators, and the basis where it should live.L = 16\nising = ABSTRACT_OP(L) + TERM(\"ZZ\") + 0.3*TERM(\"X\")\nbasis_sym = BASIS(L; syms=Dict(\"Tr\" => 3, \"P\" => -1))\n\nH = Operator(ising, basis_sym)This produce a sparse matrix H which we can diagonalize or otherwise manipulate as we like.There is also a shortcut syntax for making single-site or single-term observables.Sx2 = Operator(\"X\",2,basis)warning: Invalid Symmetries\nED_sectors does not (yet!) check if an operator actually has a particular symmetry. If the operator doesn\'t actually have the symmetry you specify, you will get nonsense!"
 },
 
 {
@@ -117,15 +117,15 @@ var documenterSearchIndex = {"docs": [
     "page": "Tutorial",
     "title": "Measurements",
     "category": "section",
-    "text": ""
+    "text": "Now that we are equipped with the tools for making matrices, we can compute expectation values to perform measurements. At this point, this is basically just linear algebra, but several convenient wrapper functions are provided to speed things up.As an example, let\'s measure the magnetization on the third spin in the ground state L = 16\nising = ABSTRACT_OP(L) + TERM(\"ZZ\") + 2.3*TERM(\"X\")\nbasis_sym = BASIS(L; syms=Dict(\"Sz\" => 0))\n\nH = Operator(ising, basis_sym)\n\n(E_0, psi_0) = ground_state(H)\n\nSz3 = Operator(\"Z\",3,basis_sym)\n\nexpectation(Sz3,psi_0)There are also more complex options, such as thermal density matrices. Computing them, of course, requires finding the full spectrum. This is done with the EIGSYS command and, as one might expect, is quite computationally expensive. L = 16\nising = ABSTRACT_OP(L) + TERM(\"ZZ\") + 2.3*TERM(\"X\")\nbasis_sym = BASIS(L; syms=Dict(\"Sz\" => 0))\n\nH = Operator(ising, basis_sym)\nSz3 = Operator(\"Z\",3,basis_sym)\n\nfull_spectrum = EIGSYS(H)\n\nbeta = 3.0\nrho_beta = thermal_density_matrix(full_spectrum,beta)\n\nexpectation(Sz3,rho_beta)These examples are just a small taste of the measurements one can easily perform. For more information on measurements, see the specific examples in the section on Ground State Measurements, Full Spectrum Measurements, or Dynamics. In particular, there are easy functions to compute entanglement entropy and time-evolution of both states and operators."
 },
 
 {
-    "location": "tutorial.html#Dynamics-1",
+    "location": "tutorial.html#Conclusion-1",
     "page": "Tutorial",
-    "title": "Dynamics",
+    "title": "Conclusion",
     "category": "section",
-    "text": ""
+    "text": "Thanks for reading the tutorial! As you probably realized, this guide is a little front-heavy. This is because most of the measurement and dynamics functions are almost exactly the same as their mathematical counterparts, so they should be relatively self-explanatory from their documentation.This package is still a work-in-progress, so there are several unfinished or undocumented features hiding in the code. Here\'s the roadmap for things that will be added soon:Other types of sites, like spinless fermions or spin-1 particles\nCustom or user-defined symmetries\nChecking that an operator satisfies the given symmetries for a basis\nAutocorrelations at temperature with more efficient code.\nLinking to dynamite?\nProjectors from symmetry sectors into the full Hilbert space, which are useful for computing entanglement and doing dynamics with operators that don\'t respect the symmetries.For any comments, questions, or issues, please start a GitHub issue."
 },
 
 {
@@ -141,7 +141,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Abstract Operators",
     "title": "ED_sectors.TERM",
     "category": "type",
-    "text": "TERM(prefactor,operatorName,firstSite, [repeat=0])\n\nTERM(operatorName) = TERM(1, operatorName, 1, [repeat=1])\nTERM(prefactor,operatorName) = TERM(prefactor, operatorName,1, [repeat=1])\nTERM(operatorName,firstSite,[repeat=0]) = TERM(1, operatorName,1, [repeat=0])\n\nA struct which stores one term in a Hamiltonian. A TERM is an operator whose action maps basis vectors to basis vectors (and not superpositions thereof). For spin-half systems, a term is any string of pauli operators, such as Z_0 Z_1. The TERM struct can be constructed in several different ways fdepending on the situation.\n\nArguments\n\n\'prefactor:: Number\': the numerical prefactor for the term.\n\'operatorName:: String\': a string of the allowed operators. For spin-half, the allowed operators are \"1\", \"I\", \"X\", \"Y\", \"Z\", \"+\", and \"-\".\n\'firstSite:: Int\': the site for the first Pauli operator in the string.\n\'repeat: Int\':: the repeat period for the string of operators. If the firstSite is not specified, then the string repeats with period 1. If firstSite is specified, then the string does not repeat by default –- see examples below.\n\nExamples\n\njulia> TERM(\"ZZ\")\nTERM(1, Dict(0=>\"Z\",1=>\"Z\"), 1)\n\njulia> TERM(3.0,\"ZXXXZ\",3)\nTERM(3.0, Dict(7=>\"Z\",4=>\"X\",3=>\"Z\",5=>\"X\",6=>\"X\"), 0)\n\njulia> TERM(\"ZXZ\",5,repeat=2)\nTERM(1, Dict(7=>\"Z\",5=>\"Z\",6=>\"X\"), 2)\n\njulia> TERM(4.3,\"ZXZ\",5,repeat=2)\nTERM(4.3, Dict(7=>\"Z\",5=>\"Z\",6=>\"X\"), 2)\n\n\n\n\n\n"
+    "text": "TERM(prefactor,operatorName, firstSite, [repeat=0])\n\nTERM(operatorName) = TERM(1, operatorName, 1, [repeat=1])\nTERM(prefactor,operatorName) = TERM(prefactor, operatorName,1, [repeat=1])\nTERM(operatorName,firstSite,[repeat=0]) = TERM(1, operatorName,1, [repeat=0])\nTERM(prefactor, operatorDictionary; repeat = 0)\n\nA struct which stores one term in a Hamiltonian. A TERM is an operator whose action maps basis vectors to basis vectors (and not superpositions thereof). For spin-half systems, a term is any string of pauli operators, such as Z_0 Z_1. The TERM struct can be constructed in several different ways fdepending on the situation.\n\nArguments\n\n\'prefactor:: Number\': the numerical prefactor for the term.\n\'operatorName:: String\': a string of the allowed operators. For spin-half, the allowed operators are \"1\", \"I\", \"X\", \"Y\", \"Z\", \"+\", and \"-\".\n\'firstSite:: Int\': the site for the first Pauli operator in the string.\n\'repeat: Int\':: the repeat period for the string of operators. If the firstSite is not specified, then the string repeats with period 1. If firstSite is specified, then the string does not repeat by default –- see examples below.\n\nExamples\n\njulia> TERM(\"ZZ\")\nTERM(1, Dict(0=>\"Z\",1=>\"Z\"), 1)\n\njulia> TERM(3.0,\"ZXXXZ\",3)\nTERM(3.0, Dict(7=>\"Z\",4=>\"X\",3=>\"Z\",5=>\"X\",6=>\"X\"), 0)\n\njulia> TERM(\"ZXZ\",5; repeat=2)\nTERM(1, Dict(7=>\"Z\",5=>\"Z\",6=>\"X\"), 2)\n\njulia> TERM(4.3,\"ZXZ\",5,repeat=2)\nTERM(4.3, Dict(7=>\"Z\",5=>\"Z\",6=>\"X\"), 2)\n\njulia> TERM(0.5,Dict(1=>\"X\", 7=>\"X\"))\nTERM(0.5, Dict(7=>\"X\",1=>\"X\"), 0)\n\n\n\n\n\n"
 },
 
 {
@@ -157,7 +157,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Abstract Operators",
     "title": "ED_sectors.ABSTRACT_OP",
     "category": "type",
-    "text": "ABSTRACT_OP(L; sites = \"spin half\", name = \"abstract operator\", pbc = true)\nABSTRACT_OP(L, operatorName, site; sites = \"spin half\", name = \"abstract operator\", pbc = true)\nABSTRACT_OP(L, TERM; sites = \"spin half\", name = \"abstract operator\", pbc = true)\n\nThe ABSTRACT_OP struct represents an operator as a string of operator names on sites, along with their numerical prefactors. This also encodes some details of the Hilbert space, including the number of sites L, the type of site in use sites (e.g. spin half), the name for the operator name, and pbc which is true when periodic boundary conditions are employed.\n\nABSTRACT_OP\'s constitute a vector space and can be added and scalar-multiplied by (generically) complex numbers. \n\nExamples\n\nThere are several different types of constructors available for ABSTRACT_OP, enabling the quick definition of \"shells\" of operators which can be used to define complex Hamiltonians, or quick constructors for simple observables.\n\njulia> ABSTRACT_OP(10)\nABSTRACT_OP[name: \"abstract operator\", L: 10, type: spin half, pbc: true, #terms: 0]\n\njulia> ABSTRACT_OP(10,\"X\",4)\nABSTRACT_OP[name: \"abstract operator\", L: 10, type: spin half, pbc: true, #terms: 1]\n1.0 + 0.0im*X_4\n\njulia> ABSTRACT_OP(10,TERM(\"Y\",5))\nABSTRACT_OP[name: \"abstract operator\", L: 10, type: spin half, pbc: true, #terms: 1]\n1.0 + 0.0im*Y_5\n\njulia> ABSTRACT_OP(10,TERM(\"Z\",7); pbc=false)\nABSTRACT_OP[name: \"abstract operator\", L: 10, type: spin half, pbc: false, #terms: 1]\n1.0 + 0.0im*Z_7\n\njulia> ABSTRACT_OP(10,4.3TERM(\"Z\",7); name=\"S_z^7\", pbc=false)\nABSTRACT_OP[name: \"S_z^7\", L: 10, type: spin half, pbc: false, #terms: 1]\n4.3 + 0.0im*Z_7\n\njulia> ABSTRACT_OP(4; name=\"Ising Model\", pbc=true) + TERM(\"ZZ\") + TERM(\"X\")\nABSTRACT_OP[name: \"Ising Model\", L: 4, type: spin half, pbc: true, #terms: 8]\n1.0 + 0.0im*Z_0 Z_1\n1.0 + 0.0im*Z_1 Z_2\n1.0 + 0.0im*Z_2 Z_3\n1.0 + 0.0im*Z_0 Z_3\n1.0 + 0.0im*X_0\n1.0 + 0.0im*X_1\n1.0 + 0.0im*X_2\n1.0 + 0.0im*X_3\n\njulia> order_parameter = ABSTRACT_OP(4,0.25*TERM(\"ZZ\"))\nABSTRACT_OP[name: \"abstract operator\", L: 4, type: spin half, pbc: true, #terms: 4]\n0.25 + 0.0im*Z_0 Z_1\n0.25 + 0.0im*Z_1 Z_2\n0.25 + 0.0im*Z_2 Z_3\n0.25 + 0.0im*Z_0 Z_3\n\nSee also: TERM.\n\n\n\n\n\n"
+    "text": "ABSTRACT_OP(L; name = \"abstract operator\", pbc = true)\nABSTRACT_OP(L, operatorName, site; name = \"abstract operator\", pbc = true)\nABSTRACT_OP(L, TERM; name = \"abstract operator\", pbc = true)\n\nThe ABSTRACT_OP struct represents an operator as a string of operator names on sites, along with their numerical prefactors. This also encodes some details of the Hilbert space, including the number of sites L, the name for the operator name, and pbc which is true when periodic boundary conditions are employed.\n\nABSTRACT_OP\'s constitute a vector space and can be added and scalar-multiplied by (generically) complex numbers. \n\nExamples\n\nThere are several different types of constructors available for ABSTRACT_OP, enabling the quick definition of \"shells\" of operators which can be used to define complex Hamiltonians, or quick constructors for simple observables.\n\njulia> ABSTRACT_OP(10)\nABSTRACT_OP[name: \"abstract operator\", L: 10, type: spin half, pbc: true, #terms: 0]\n\njulia> ABSTRACT_OP(10,\"X\",4)\nABSTRACT_OP[name: \"abstract operator\", L: 10, type: spin half, pbc: true, #terms: 1]\n1.0 + 0.0im*X_4\n\njulia> ABSTRACT_OP(10,TERM(\"Y\",5))\nABSTRACT_OP[name: \"abstract operator\", L: 10, type: spin half, pbc: true, #terms: 1]\n1.0 + 0.0im*Y_5\n\njulia> ABSTRACT_OP(10,TERM(\"Z\",7); pbc=false)\nABSTRACT_OP[name: \"abstract operator\", L: 10, type: spin half, pbc: false, #terms: 1]\n1.0 + 0.0im*Z_7\n\njulia> ABSTRACT_OP(10,4.3TERM(\"Z\",7); name=\"S_z^7\", pbc=false)\nABSTRACT_OP[name: \"S_z^7\", L: 10, type: spin half, pbc: false, #terms: 1]\n4.3 + 0.0im*Z_7\n\njulia> ABSTRACT_OP(4; name=\"Ising Model\", pbc=true) + TERM(\"ZZ\") + TERM(\"X\")\nABSTRACT_OP[name: \"Ising Model\", L: 4, type: spin half, pbc: true, #terms: 8]\n1.0 + 0.0im*Z_0 Z_1\n1.0 + 0.0im*Z_1 Z_2\n1.0 + 0.0im*Z_2 Z_3\n1.0 + 0.0im*Z_0 Z_3\n1.0 + 0.0im*X_0\n1.0 + 0.0im*X_1\n1.0 + 0.0im*X_2\n1.0 + 0.0im*X_3\n\njulia> order_parameter = ABSTRACT_OP(4,0.25*TERM(\"ZZ\"))\nABSTRACT_OP[name: \"abstract operator\", L: 4, type: spin half, pbc: true, #terms: 4]\n0.25 + 0.0im*Z_0 Z_1\n0.25 + 0.0im*Z_1 Z_2\n0.25 + 0.0im*Z_2 Z_3\n0.25 + 0.0im*Z_0 Z_3\n\nSee also: TERM.\n\n\n\n\n\n"
 },
 
 {
@@ -189,7 +189,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Abstract Operators",
     "title": "Abstract Operators",
     "category": "section",
-    "text": "DocTestSetup = quote\n	using ED_sectors\nendTERM\n*(::Number, ::TERM)\nABSTRACT_OP\n*(::Number, ::ABSTRACT_OP)\n+(::ABSTRACT_OP,::ABSTRACT_OP)\n+(:: ABSTRACT_OP, :: TERM)"
+    "text": "DocTestSetup = quote\n	using ED_sectors\nendPages=[\"abstract_operators.md\"]TERM\n*(::Number, ::TERM)\nABSTRACT_OP\n*(::Number, ::ABSTRACT_OP)\n+(::ABSTRACT_OP,::ABSTRACT_OP)\n+(:: ABSTRACT_OP, :: TERM)"
 },
 
 {
@@ -205,7 +205,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Making Bases",
     "title": "ED_sectors.BASIS",
     "category": "type",
-    "text": "	BASIS(L;\n	a :: Int64 = 1,\n	syms :: Dict{String,Int} = (),\n	constraint :: Function = identity\n	)\n\nA struct that stores a basis for a Hilbert space. A BASIS is constructed by specifiying its attributes. 	- The number of spins L 	- The number of spins per unit cell a, whose default is 1. 	- Any symmetries of the basis, specified as a dictionary syms. The default is no symmetries. 	- A constraint function state :: UInt64 -> Bool where only states where the constraint evaluates to true are admitted to the Hilbert space.\n\nSymmetries are specified by giving their name and sector. For instance, \"tr\" => 3 represents the translation symmetry in sector 3, where one application of the symmetry moves the state around by 3 basis vectors. The complete list of implemented symmetries is below.\n\nSymmetry Full Name Values\nTr Translation 1 le Tr le La\nP Parity (Spin flip) -11\nI Inversion -11\nSz Total S^z -L le Sz le L\nPA P for even spins -11\nPB P for odd spins -11\nSzA sum_imathrmeven S^z_i -L2 le SzA le L2\nSzB sum_imathrmodd S^z_i -L2 le SzB le L2\n\nUsing some symmetries requires extra conditions. Explicitly, translation symmetry requires periodic boundary conditions, and even/odd parity and spin sectors require a even number of total sites. However, multiple symmetries can be used at the same time.\n\nwarning: Index Convention\nSpins are zero-indexed, so the left-most site is spin zero and is in the \"A\" sublattice.\n\nUsers can also supply arbitrary constraint functions UInt64 -> Bool, which specify states that are allowed in the Hilbert space. \n\nnote: Note\nA BASIS can require a very large amount of memory to store. Internally, it is composed of one hashmap from states in the full Hilbert space to a representative of their conjugacy classes, and another from representatives of conjugacy classes to indices in the small Hilbert space. Altogether, this requires 2^L space. For truly large sizes, one can –- in principle –- generate these hashmaps as needed, but this is not implemented yet here.\n\nExamples\n\njulia> BASIS(8)\nBASIS[L: 8, a: 1, dim: 256, symmetries: none]\n\njulia> BASIS(8; a=2)\nBASIS[L: 8, a: 2, dim: 256, symmetries: none]\n\njulia> BASIS(8; syms = Dict(\"Tr\"=>1))\nBASIS[L: 8, a: 1, dim: 30, symmetries: \"Tr\" => 1]\n\njulia> BASIS(8; a=2, syms = Dict(\"Tr\"=>1))\nBASIS[L: 8, a: 2, dim: 60, symmetries: \"Tr\" => 1]\n\njulia> BASIS(8; syms = Dict(\"Sz\" => 3, \"Tr\" => 2))\nBASIS[L: 8, a: 1, dim: 7, symmetries: \"Sz\" => 3, \"Tr\" => 2]\n\njulia> cons_fcn = x -> x < 17;\n\njulia> BASIS(8; constraint = cons_fcn)\nBASIS[L: 8, a: 1, dim: 17, symmetries: \"constrained\" => 1]\n\n\n\n\n\n"
+    "text": "	BASIS(L;\n	a :: Int64 = 1,\n	syms :: Dict{String,Int} = (),\n	constraint :: Function = identity\n	)\n\nA struct that stores a basis for a Hilbert space. A BASIS is constructed by specifiying its attributes. 	- The number of spins L 	- The number of spins per unit cell a, whose default is 1. 	- Any symmetries of the basis, specified as a dictionary syms. The default is no symmetries. 	- A constraint function state :: UInt64 -> Bool where only states where the constraint evaluates to true are admitted to the Hilbert space.\n\nSymmetries are specified by giving their name and sector. For instance, \"tr\" => 3 represents the translation symmetry in sector 3, where one application of the symmetry moves the state around by 3 basis vectors. The complete list of implemented symmetries is below.\n\nName Symmetry Values Generator\nTr Translation 1 le t le La S_i^mu to S_i+t pmodLa\nP Parity (Spin flip) -11 displaystyle prod_i=0^L-1 S_i^x\nI Inversion -11 S_i^mu to S_L-1-i^mu\nSz Total S^z -L le Sz le L n/a; counts sum_i=0^L-1 S_i^z\nPA P for even spins -11 displaystyle prod_substacki=0 i equiv 0 pmod 2^L-1 S_i^x\nPB P for odd spins -11 displaystyle prod_substacki=0 i equiv 1 pmod 2^L-1 S_i^x\nSzA S^z for even spins -L2 le SzA le L2 n/a; counts displaystylesum_substacki=0 i equiv 0 pmod 2^L-1 S_i^z\nSzB S^z for odd spins -L2 le SzB le L2 n/a; counts displaystylesum_substacki=0 i equiv 1 pmod 2^L-1 S_i^z\n\nUsing some symmetries requires extra conditions. Explicitly, translation symmetry requires periodic boundary conditions, and even/odd parity and spin sectors require a even number of total sites. However, multiple symmetries can be used at the same time.\n\nwarning: Index Convention\nSpins are zero-indexed, so the left-most site is spin zero and is in the \"A\" sublattice.\n\nUsers can also supply arbitrary constraint functions UInt64 -> Bool, which specify states that are allowed in the Hilbert space. \n\nnote: Note\nA BASIS can require a very large amount of memory to store. Internally, it is composed of one hashmap from states in the full Hilbert space to a representative of their conjugacy classes, and another from representatives of conjugacy classes to indices in the small Hilbert space. Altogether, this requires 2^L space. For truly large sizes, one can –- in principle –- generate these hashmaps as needed, but this is not implemented yet here.\n\nExamples\n\njulia> BASIS(8)\nBASIS[L: 8, a: 1, dim: 256, symmetries: none]\n\njulia> BASIS(8; a=2)\nBASIS[L: 8, a: 2, dim: 256, symmetries: none]\n\njulia> BASIS(8; syms = Dict(\"Tr\"=>1))\nBASIS[L: 8, a: 1, dim: 30, symmetries: \"Tr\" => 1]\n\njulia> BASIS(8; a=2, syms = Dict(\"Tr\"=>1))\nBASIS[L: 8, a: 2, dim: 60, symmetries: \"Tr\" => 1]\n\njulia> BASIS(8; syms = Dict(\"Sz\" => 3, \"Tr\" => 2))\nBASIS[L: 8, a: 1, dim: 7, symmetries: \"Sz\" => 3, \"Tr\" => 2]\n\njulia> cons_fcn = x -> x < 17;\n\njulia> BASIS(8; constraint = cons_fcn)\nBASIS[L: 8, a: 1, dim: 17, symmetries: \"constrained\" => 1]\n\n\n\n\n\n"
 },
 
 {
@@ -213,7 +213,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Making Bases",
     "title": "Basis",
     "category": "section",
-    "text": "DocTestSetup = quote\n	using ED_sectors\nendBASIS"
+    "text": "DocTestSetup = quote\n	using ED_sectors\nendPages=[\"basis.md\"]BASIS"
 },
 
 {
@@ -237,7 +237,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Operators",
     "title": "Matrix Constructors",
     "category": "section",
-    "text": "DocTestSetup = quote\n	using ED_sectors\nendOperator"
+    "text": "DocTestSetup = quote\n	using ED_sectors\nendPages=[\"matrix_constructors.md\"]Operator"
 },
 
 {
@@ -301,7 +301,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Ground State Measurements",
     "title": "Measurement",
     "category": "section",
-    "text": "DocTestSetup = quote\n	using ED_sectors\nendk_eigvals\nk_eigsys\nexpectation\nreduce_density_matrix\nentanglement_entropy\nmeasure_EE"
+    "text": "DocTestSetup = quote\n	using ED_sectors\nendPages=[\"measurement.md\"]k_eigvals\nk_eigsys\nexpectation\nreduce_density_matrix\nentanglement_entropy\nmeasure_EE"
 },
 
 {
@@ -341,7 +341,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Full Spectrum Measurements",
     "title": "Full Spectrum Measurements",
     "category": "section",
-    "text": "DocTestSetup = quote\n	using ED_sectors\nendEIGSYSthermal_density_matrix\nr_statistic"
+    "text": "DocTestSetup = quote\n	using ED_sectors\nendPages=[\"full_spec.md\"]EIGSYSthermal_density_matrix\nr_statistic"
 },
 
 {
@@ -381,7 +381,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Dynamics",
     "title": "Dynamics",
     "category": "section",
-    "text": "DocTestSetup = quote\n	using ED_sectors\nendevolve_state\nexpectation_time\nautocorrelation"
+    "text": "DocTestSetup = quote\n	using ED_sectors\nendPages=[\"dynamics.md\"]evolve_state\nexpectation_time\nautocorrelation"
 },
 
 {
@@ -413,7 +413,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Utilities",
     "title": "Utilities",
     "category": "section",
-    "text": "DocTestSetup = quote\n	using ED_sectors\nendED_sectors.export_data\nED_sectors.make_filename"
+    "text": "DocTestSetup = quote\n	using ED_sectors\nendPages=[\"utilities.md\"]ED_sectors.export_data\nED_sectors.make_filename"
 },
 
 {
@@ -429,7 +429,15 @@ var documenterSearchIndex = {"docs": [
     "page": "Internals",
     "title": "Internals",
     "category": "section",
-    "text": "DocTestSetup = quote\n	using ED_sectors\nend\n"
+    "text": "DocTestSetup = quote\n	using ED_sectors\nendPages = [\"internals.md\"]\nDepth = 2"
+},
+
+{
+    "location": "internals.html#Index-of-Commands-1",
+    "page": "Internals",
+    "title": "Index of Commands",
+    "category": "section",
+    "text": "\n"
 },
 
 {
@@ -710,6 +718,14 @@ var documenterSearchIndex = {"docs": [
     "title": "matrix_constructors.jl",
     "category": "section",
     "text": "Modules = [ED_sectors]\nPages = [\"matrix_constructors.jl\"]\nPublic = false\nOrder   = [:constant, :type, :function]"
+},
+
+{
+    "location": "internals.html#ED_sectors.ground_state-Tuple{AbstractArray{T,2} where T}",
+    "page": "Internals",
+    "title": "ED_sectors.ground_state",
+    "category": "method",
+    "text": "ground_state(H)\n\nReturns a tuple (E0, psi0) of the ground state energy and wavefunction.\n\n\n\n\n\n"
 },
 
 {
