@@ -6,6 +6,10 @@ DocTestSetup = quote
 end
 ```
 
+```@index
+Pages=["measurement.md"]
+```
+
 ```@docs
 k_eigvals
 k_eigsys

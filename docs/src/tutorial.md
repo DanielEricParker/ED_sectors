@@ -11,7 +11,7 @@ DocTestSetup = quote
 end
 ```
 
-## Overview, or Big Matrices are Hard
+## Overview or: Big Matrices are a Big Problem
 
 This tutorial will introduce the basic functionality of the `ED_sectors` package. It is self-contained from a programming perspective, but assumes some knowledge of quantum mechanics.
 
@@ -95,16 +95,183 @@ The downside of this method is that actually putting the matrix into a block-dia
 !!! note
     **The purpose of this package is to abstract away this troublesome procedure. With `ED_sectors`, finding a single symmetry block of the Hamiltonian can be done in a single line.**
 
-## Abstract Operators
+## Defining Hamiltonians: Abstract Operators
 
-Let's now dispense with the motivation and get down to the business of explaining how this packages works and what its important commands are.
+Let's now dispense with the motivation and get down to the business of explaining how this packages works and what its important commands are. We will start with defining Hamiltonians. For a spin chain of length ``L``, the space of Hamiltonians has dimension ``4^L`` -- its huge! Physically interesting Hamiltonians, however, are only a small corner of this space. They tend to be translation invariant, or at least nearly so, and involve only local or quasi-local interactions. In practice, then, they are usually a sum of a few terms. Similarly, most observables involve only a few sites, or perhaps a sum of the same few-site operator translated across the system. In `ED_sectors` we adopt a syntax designed to make writing physical Hamiltonians and common observables as easy as possible.
+
+To do this, we have two main data structures: [`ABSTRACT_OP`](@ref)'s and [`TERM`](@ref)'s. The former, short for "abstract operator", is a representation of an operator as a string of Pauli matrices and, just how a Hamiltonian is written as a sum of individual terms, an `ABSTRACT_OP` is made by adding `TERM`s together.
+
+As an example, let's define the XXZ Hamiltonian mentioned above:
+```julia
+XXZ = ABSTRACT_OP(8)
+XXZ += TERM("XX")
+XXZ += TERM("YY")
+XXZ += 0.3*TERM("ZZ")
+```
+In the first line, we create an abstract operator with `16` sites and, by default, periodic boundary conditions. We then add three terms to the Hamiltonian which are automatically translated across all sites.
+
+`ABSTRACT_OP`s have a choice of either periodic or open boundary conditions, which is easily adjusted with an optional argument. Additionally, we can give abstract operators names to make them easier to debug. For detailed documentation, see [`ABSTRACT_OP`](@ref).
+
+```
+ising = ABSTRACT_OP(15; name="Ising Model", pbc=false) + TERM("ZZ") + TERM("X")
+```
+
+Just like real Hamiltonians, we can add abstract operators together, or multiply them by a (complex) prefactor. For instance, we can easily define a magnetic field in the ``Z`` direction, adjust its magnitude, and add it on to our XXZ operator.
+```
+magnetic_field = ABSTRACT_OP(8) + TERM("Z")
+magnetic_field_2 = 0.1*magnetic_field
+XXZ_B = XXZ + magnetic_field_2
+```
+
+This syntax is great for creating relatively complex operators, like Hamiltonians. But individual observables are often much simpler and often live only on a single site or a few sites. For this situation, there is a notational shortcut.
+```julia
+middle_field = ABSTRACT_OP(8,"Z",4)
+```
+This creates the operator ``S_4^z`` in a single line. Alternatively, a single `TERM` can be supplied instead. With this we can easily define, for instance, an order parameter ``\tfrac{1}{L} \sum_i S_i^z``.
+```julia
+magnetic_order_parameter = ABSTRACT_OP(8,(1/8)*TERM("Z"))
+```
 
 
 
-## Choosing Bases
+To create all the different types of operators you might encounter in the course of your day-to-day spin chain exploration, there are several different ways to make `TERM`'s. Some examples are provided here, and all the options are spelled out at [`TERM`](@ref).
 
-## Making Matrices
+| Example                                     | Result                                                                                           |
+|:-------------------------------------------:|:------------------------------------------------------------------------------------------------:|
+| `TERM("ZZ")`                                | ``\displaystyle \sum_{i=0}^{L-1} S_i^z S_{i+1}^z``                                               |
+| `TERM("ZIZ",4)`                             | ``S_4^z S^z_6 ``                                                                                 |
+| `TERM(3.0,"X",3)`                           | ``\displaystyle3 \sum_{i=3}^{L-1} S_i^x ``                                                       |
+| `TERM("YY",3,repeat=2)`			          | ``\displaystyle\sum_{\substack{i=2\\ i \mathrm{ even}}} S_i^y S_{i+1}^y``                        |
+| `TERM(4.3,"ZXZ",5,repeat=3)`                | ``\displaystyle 4.3 \sum_{\substack{i=5\\ i \equiv 0 \pmod 3}}^{L-1} S_i^z S_{i+1}^x S_{i+2}^z ``|
+| `TERM(0.5,Dict(1=>"X", 7=>"X))`             | ``S_1^x S_7^x``                                                                                  |
+| `TERM(0.5,Dict(1=>"X", 7=>"X); repeat = 1)` | ``\displaystyle \sum_{i=1}^{L-1} S_i^x S_{i+7}^x``                                               |
+
+The several different ways of making `TERM`'s shown here are general enough to make any Hamiltonian, even if it has next-next-nearest neighbor interactions, isn't translationally invariant, or other unusual possibilities. If the most convenient syntax is insufficient then, as shown in the last two examples, one can define terms based on a dictionary `Dict(site => "op")`. Adding these together can make any operator whatsoever.
+
+
+!!! warning "Index Convention"
+    Abstract operators are zero-indexed. The left-most spin is spin ``0`` and, in a chain of length ``L``, the right-most spin has index ``L-1``.
+
+!!! warning "Boundary Conditions"
+    The above examples use periodic boundary conditions. In that case, all indices larger than ``L-1`` will wrap around, i.e. indices should be interpreted ``\pmod L``.
+
+    With open boundary conditions, however, all terms whose indices exceed ``L-1`` will simply be dropped. 
+
+
+## Symmetries and Bases
+
+Making a [`BASIS`](@ref) is as easy as specifying the number of sites. Optionally, one can also include the size of the unit cell, symmetries, and a constraint on which sites are allowed in the Hilbert space.
+
+
+For instance, making a basis for `16` spins is just
+```julia
+BASIS(16)
+```
+
+As discussed extensively above, however, the real purpose of making a basis in exact diagonalization is to take symmetries into account. There are a number of symmetries built-in, which we now list in a convenient table.
+
+
+| Name       | Symmetry                             | Values                  | Generator                                                                           |
+|:----------:|--------------------------------------|:-----------------------:| ------------------------------------------------------------------------------------|
+| Tr         | Translation                          | ``1 \le t \le L/a``     | ``S_i^\mu \to S_{i+t \pmod{L/a}}``                                                   |
+| P          | Parity (Spin flip)                   | ``\{-1,1\}``            | ``\displaystyle \prod_{i=0}^{L-1} S_i^x``                                           | 
+| I          | Inversion                            | ``\{-1,1\}``            | ``S_i^\mu \to S_{L-1-i}^\mu``                                                       |
+| Sz         | Total ``S^z``                        | ``-L \le Sz \le L``     | n/a; counts ``\sum_{i=0}^{L-1} S_i^z``                                              |
+| PA         | P for even spins                     | ``\{-1,1\}``            | ``\displaystyle \prod_{\substack{i=0\\ i \equiv 0 \pmod 2}}^{L-1} S_i^x``           |
+| PB         | P for odd spins                      | ``\{-1,1\}``            | ``\displaystyle \prod_{\substack{i=0\\ i \equiv 1 \pmod 2}}^{L-1} S_i^x``           |
+| SzA        | ``S^z`` for even spins               | ``-L/2 \le SzA \le L/2``| n/a; counts ``\displaystyle\sum_{\substack{i=0\\ i \equiv 0 \pmod 2}}^{L-1} S_i^z`` |
+| SzB        | ``S^z`` for odd spins                | ``-L/2 \le SzB \le L/2``| n/a; counts ``\displaystyle\sum_{\substack{i=0\\ i \equiv 1 \pmod 2}}^{L-1} S_i^z`` |
+
+To make a basis for the third translation sector and odd parity sector for instance, is simply
+```julia
+basis_sym = BASIS(16; syms=Dict("Tr" => 3, "P" => -1))
+```
+
+One can also add custom constraints onto the Hilbert space. Suppose, for instance, you wanted to use the "Rydberg constraint" that two adjacent spins cannot both point up at once. After designing a function to test for that, it can be easily used to make bases satisfying those constraints.
+```julia
+function test_Rydberg(state) :: Bool
+	[...]
+end
+
+basis_Rydberg = BASIS(24; constraint = test_Rydberg)
+```
+
+More information about making bases can be found at `BASIS`](@ref).
+
+## Making Actual Matrices
+
+Making actual matrices is done by specifiying the abstract operators, and the basis where it should live.
+
+```julia
+L = 16
+ising = ABSTRACT_OP(L) + TERM("ZZ") + 0.3*TERM("X")
+basis_sym = BASIS(L; syms=Dict("Tr" => 3, "P" => -1))
+
+H = Operator(ising, basis_sym)
+```
+This produce a sparse matrix `H` which we can diagonalize or otherwise manipulate as we like.
+
+There is also a shortcut syntax for making single-site or single-term observables.
+```julia
+Sx2 = Operator("X",2,basis)
+```
+
+
+!!! warning "Invalid Symmetries"
+    `ED_sectors` does not (yet!) check if an operator actually *has* a particular symmetry. If the operator doesn't actually have the symmetry you specify, you will get nonsense!
+
 
 ## Measurements 
 
-## Dynamics
+Now that we are equipped with the tools for making matrices, we can compute expectation values to perform measurements. At this point, this is basically just linear algebra, but several convenient wrapper functions are provided to speed things up.
+
+As an example, let's measure the magnetization on the third spin in the ground state 
+```julia
+L = 16
+ising = ABSTRACT_OP(L) + TERM("ZZ") + 2.3*TERM("X")
+basis_sym = BASIS(L; syms=Dict("Sz" => 0))
+
+H = Operator(ising, basis_sym)
+
+(E_0, psi_0) = ground_state(H)
+
+Sz3 = Operator("Z",3,basis_sym)
+
+expectation(Sz3,psi_0)
+```
+
+There are also more complex options, such as thermal density matrices. Computing them, of course, requires finding the full spectrum. This is done with the [`EIGSYS`](@ref) command and, as one might expect, is quite computationally expensive. 
+
+```julia
+L = 16
+ising = ABSTRACT_OP(L) + TERM("ZZ") + 2.3*TERM("X")
+basis_sym = BASIS(L; syms=Dict("Sz" => 0))
+
+H = Operator(ising, basis_sym)
+Sz3 = Operator("Z",3,basis_sym)
+
+full_spectrum = EIGSYS(H)
+
+beta = 3.0
+rho_beta = thermal_density_matrix(full_spectrum,beta)
+
+expectation(Sz3,rho_beta)
+```
+
+These examples are just a small taste of the measurements one can easily perform. For more information on measurements, see the specific examples in the section on [Ground State Measurements](measurement.md), [Full Spectrum Measurements](full_spec.md), or [Dynamics](dynamics.md). In particular, there are easy functions to compute entanglement entropy and time-evolution of both states and operators.
+
+## Conclusion
+
+Thanks for reading the tutorial! As you probably realized, this guide is a little front-heavy. This is because most of the measurement and dynamics functions are almost exactly the same as their mathematical counterparts, so they should be relatively self-explanatory from their documentation.
+
+This package is still a work-in-progress, so there are several unfinished or undocumented features hiding in the code. Here's the roadmap for things that will be added soon:
+
+- Other types of sites, like spinless fermions or spin-1 particles
+- Custom or user-defined symmetries
+- Checking that an operator satisfies the given symmetries for a basis
+- Autocorrelations at temperature with more efficient code.
+- Linking to dynamite?
+- Projectors from symmetry sectors into the full Hilbert space, which are useful for computing entanglement and doing dynamics with operators that don't respect the symmetries.
+
+For any comments, questions, or issues, please start a GitHub issue.
+

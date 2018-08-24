@@ -6,6 +6,10 @@ DocTestSetup = quote
 end
 ```
 
+```@index
+Pages=["basis.md"]
+```
+
 ```@docs
 BASIS
 ```

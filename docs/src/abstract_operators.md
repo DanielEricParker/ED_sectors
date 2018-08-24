@@ -6,6 +6,11 @@ DocTestSetup = quote
 end
 ```
 
+```@index
+Pages=["abstract_operators.md"]
+```
+
+
 ```@docs
 TERM
 *(::Number, ::TERM)

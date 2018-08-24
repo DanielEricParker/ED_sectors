@@ -25,7 +25,7 @@ XXZ -= TERM("XX") - TERM("YY") - 0.3TERM("ZZ")
 H = Operator(XXZ, basis)
 
 #get the ground state energy and wavefunction
-(E_0, psi_0) = k_eigvals(H,1)
+(E_0, psi_0) = ground_state(H)
 
 #compute the magnetization in the ground state
 
@@ -34,7 +34,7 @@ S_tot = Operator(TERM("Z"),basis)
 mag_Z = expectation(S_tot,psi_0)
 ```
 
-In only a few lines we can define a basis, create a Hamiltonian, find its ground state, and measure expectation values. See the Tutorial or the Full API to learn more!
+In only a few lines we can define a basis, create a Hamiltonian, find its ground state, and measure expectation values. See the [Tutorial](tutorial.md) or the Full API to learn more!
 
 ## Installation
 

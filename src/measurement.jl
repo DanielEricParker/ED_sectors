@@ -39,6 +39,18 @@ function k_eigsys(H :: AbstractMatrix, k :: Int)
 	return (real(eig_sys[1]),eig_sys[2])
 end 
 
+"""
+	ground_state(H)
+
+Returns a tuple (E_0, psi_0) of the ground state energy and wavefunction.
+
+"""
+function ground_state(H :: AbstractMatrix)
+	(Es, states) = k_eigsys(H,1)
+	return (Es[1],states[1])
+end
+
+
 #thought: for a single-site operator, it's probably way 
 #better to compute the reduced density matrix
 """

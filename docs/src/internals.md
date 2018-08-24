@@ -6,6 +6,12 @@ DocTestSetup = quote
 end
 ```
 
+```@contents
+Pages = ["internals.md"]
+Depth = 2
+```
+
+## Index of Commands
 ```@index
 
 

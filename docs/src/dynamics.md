@@ -6,7 +6,9 @@ DocTestSetup = quote
 end
 ```
 
-
+```@index
+Pages=["dynamics.md"]
+```
 
 ```@docs
 evolve_state

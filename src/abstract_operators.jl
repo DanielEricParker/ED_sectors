@@ -45,11 +45,12 @@ function parse_term(
 end
 
 """
-	TERM(prefactor,operatorName,firstSite, [repeat=0])
+	TERM(prefactor,operatorName, firstSite, [repeat=0])
 
 	TERM(operatorName) = TERM(1, operatorName, 1, [repeat=1])
 	TERM(prefactor,operatorName) = TERM(prefactor, operatorName,1, [repeat=1])
 	TERM(operatorName,firstSite,[repeat=0]) = TERM(1, operatorName,1, [repeat=0])
+	TERM(prefactor, operatorDictionary; repeat = 0)
 
 A struct which stores one term in a Hamiltonian. A `TERM` is an operator whose action maps basis vectors to basis vectors (and not superpositions thereof). For spin-half systems, a term is any string of pauli operators, such as ``Z_0 Z_1``. The `TERM` struct can be constructed in several different ways fdepending on the situation.
 
@@ -67,11 +68,14 @@ TERM(1, Dict(0=>"Z",1=>"Z"), 1)
 julia> TERM(3.0,"ZXXXZ",3)
 TERM(3.0, Dict(7=>"Z",4=>"X",3=>"Z",5=>"X",6=>"X"), 0)
 
-julia> TERM("ZXZ",5,repeat=2)
+julia> TERM("ZXZ",5; repeat=2)
 TERM(1, Dict(7=>"Z",5=>"Z",6=>"X"), 2)
 
 julia> TERM(4.3,"ZXZ",5,repeat=2)
 TERM(4.3, Dict(7=>"Z",5=>"Z",6=>"X"), 2)
+
+julia> TERM(0.5,Dict(1=>"X", 7=>"X"))
+TERM(0.5, Dict(7=>"X",1=>"X"), 0)
 ```
 """
 struct TERM
@@ -169,15 +173,22 @@ function Base.:*(x :: Number, t :: TERM_INTERNAL)::TERM_INTERNAL
     return TERM_INTERNAL(x*t.prefactor,t.operators)
 end
 
+#####
+##### for now, removed references to the `sites` option since it's all spin-1/2
+#####
+# 	ABSTRACT_OP(L; sites = "spin half", name = "abstract operator", pbc = true)
+# 	ABSTRACT_OP(L, operatorName, site; sites = "spin half", name = "abstract operator", pbc = true)
+# 	ABSTRACT_OP(L, TERM; sites = "spin half", name = "abstract operator", pbc = true)
 
+# The `ABSTRACT_OP` struct represents an operator as a string of operator names on sites, along with their numerical prefactors. This also encodes some details of the Hilbert space, including the number of sites `L`, the type of site in use `sites` (e.g. spin half), the name for the operator `name`, and `pbc` which is true when periodic boundary conditions are employed.
 # ABSTRACT_OP(L, sites, name, pbc, terms)
 """
 
-	ABSTRACT_OP(L; sites = "spin half", name = "abstract operator", pbc = true)
-	ABSTRACT_OP(L, operatorName, site; sites = "spin half", name = "abstract operator", pbc = true)
-	ABSTRACT_OP(L, TERM; sites = "spin half", name = "abstract operator", pbc = true)
+	ABSTRACT_OP(L; name = "abstract operator", pbc = true)
+	ABSTRACT_OP(L, operatorName, site; name = "abstract operator", pbc = true)
+	ABSTRACT_OP(L, TERM; name = "abstract operator", pbc = true)
 
-The `ABSTRACT_OP` struct represents an operator as a string of operator names on sites, along with their numerical prefactors. This also encodes some details of the Hilbert space, including the number of sites `L`, the type of site in use `sites` (e.g. spin half), the name for the operator `name`, and `pbc` which is true when periodic boundary conditions are employed.
+The `ABSTRACT_OP` struct represents an operator as a string of operator names on sites, along with their numerical prefactors. This also encodes some details of the Hilbert space, including the number of sites `L`, the name for the operator `name`, and `pbc` which is true when periodic boundary conditions are employed.
 
 `ABSTRACT_OP`'s constitute a vector space and can be added and scalar-multiplied by (generically) complex numbers. 
 

@@ -6,6 +6,10 @@ DocTestSetup = quote
 end
 ```
 
+```@index
+Pages=["matrix_constructors.md"]
+```
+
 ```@docs
 Operator
 ```

@@ -424,16 +424,16 @@ A struct that stores a basis for a Hilbert space. A `BASIS` is constructed by sp
 
 Symmetries are specified by giving their name and sector. For instance, `"tr" => 3` represents the translation symmetry in sector 3, where one application of the symmetry moves the state around by 3 basis vectors. The complete list of implemented symmetries is below.
 
-| Symmetry   | Full Name                            | Values                    |
-|:----------:|--------------------------------------|:-------------------------:|
-| Tr         | Translation                          | ``1 \\le Tr \\le L/a``    |
-| P          | Parity (Spin flip)                   | ``\\{-1,1\\}``            |
-| I          | Inversion                            | ``\\{-1,1\\}``            |
-| Sz         | Total ``S^z``                        | ``-L \\le Sz \\le L``     |
-| PA         | P for even spins                     | ``\\{-1,1\\}``            |
-| PB         | P for odd spins                      | ``\\{-1,1\\}``            |
-| SzA        | ``\\sum_{i\\;\\mathrm{even}} S^z_i`` | ``-L/2 \\le SzA \\le L/2``|
-| SzB        | ``\\sum_{i\\;\\mathrm{odd}} S^z_i``  | ``-L/2 \\le SzB \\le L/2``|
+| Name       | Symmetry                             | Values                  | Generator                                                                           |
+|:----------:|--------------------------------------|:-----------------------:| ------------------------------------------------------------------------------------|
+| Tr         | Translation                          | ``1 \\le t \\le L/a``     | ``S_i^\\mu \\to S_{i+t \\pmod{L/a}}``                                                   |
+| P          | Parity (Spin flip)                   | ``\\{-1,1\\}``            | ``\\displaystyle \\prod_{i=0}^{L-1} S_i^x``                                           | 
+| I          | Inversion                            | ``\\{-1,1\\}``            | ``S_i^\\mu \\to S_{L-1-i}^\\mu``                                                       |
+| Sz         | Total ``S^z``                        | ``-L \\le Sz \\le L``     | n/a; counts ``\\sum_{i=0}^{L-1} S_i^z``                                              |
+| PA         | P for even spins                     | ``\\{-1,1\\}``            | ``\\displaystyle \\prod_{\\substack{i=0\\\\ i \\equiv 0 \\pmod 2}}^{L-1} S_i^x``           |
+| PB         | P for odd spins                      | ``\\{-1,1\\}``            | ``\\displaystyle \\prod_{\\substack{i=0\\\\ i \\equiv 1 \\pmod 2}}^{L-1} S_i^x``           |
+| SzA        | ``S^z`` for even spins               | ``-L/2 \\le SzA \\le L/2``| n/a; counts ``\\displaystyle\\sum_{\\substack{i=0\\\\ i \\equiv 0 \\pmod 2}}^{L-1} S_i^z`` |
+| SzB        | ``S^z`` for odd spins                | ``-L/2 \\le SzB \\le L/2``| n/a; counts ``\\displaystyle\\sum_{\\substack{i=0\\\\ i \\equiv 1 \\pmod 2}}^{L-1} S_i^z`` |
 
 Using some symmetries requires extra conditions. Explicitly, translation symmetry requires periodic boundary conditions, and even/odd parity and spin sectors require a even number of total sites. However, multiple symmetries can be used at the same time.
 

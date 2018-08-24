@@ -6,6 +6,10 @@ DocTestSetup = quote
 end
 ```
 
+```@index
+Pages=["full_spec.md"]
+```
+
 ```@docs
 EIGSYS
 ```
