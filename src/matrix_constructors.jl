@@ -140,7 +140,7 @@ Given a basis vector |v> and a term (i.e. operator) t, returns t | v>. For spin-
 """
 function apply_operators(v :: VEC, t :: TERM_INTERNAL)::VEC
     for op in t.operator
-        if is_Null_VEC(v)
+        if is_Null_VEC(v) || op.name == "I" || op.name == "1"
             return v
         else 
             if op.name == "X"
@@ -378,6 +378,8 @@ function get_pauli_matrix(name :: String)
             return pauli_plus
         elseif name == "-"
             return pauli_minus
+        elseif name == "I" || name == "1"
+            return pauli_1
         # elseif name == "C" #destroy spinless fermions
         #     return c_op
         # elseif name == "D" #C dagger
@@ -443,49 +445,172 @@ function construct_matrix_full(basis :: BASIS, abstract_op :: ABSTRACT_OP)
     return H
 end
 
+#######################################
+# New and more efficient version of the constructor
+#######################################
 
 
-#UNTESTED!
+
+"""
+Efficiently applies a pauli string on a state
+"""
+function Base.:*(P :: PAULI, psi :: VEC) :: VEC
+	pre = P.x * psi.factor
+
+	state_new = xor(P.V.w,psi.state)
+	minus_ones = count_ones(P.V.v & (~state_new)) % 2 == 1
+
+	if xor(P.V.epsilon, minus_ones)
+		pre = -pre
+	end
+
+	if P.V.delta
+		pre = Complex(-pre.im,pre.re)
+	end
+
+
+	return VEC(pre, state_new)
+end
+
+
+"""
+Efficiently applies a pauli string on a state
+"""
+function Base.:*(P :: PAULI, x :: UInt64) :: VEC
+	pre = P.x
+	state_new = xor(P.V.w,x)
+	minus_ones = count_ones(P.V.v & (~state_new)) % 2 == 1
+
+	if xor(P.V.epsilon, minus_ones)
+		pre = -pre
+	end
+	if P.V.delta
+		pre = Complex(-pre.im,pre.re)
+	end
+
+	return VEC(pre, state_new)
+end
+
+
+
+
+"""
+Converts a TERM_INTERNAL to a PAULI string.
+"""
+#This is currently done in a terribly stupid way.
+function PauliString(term :: TERM_INTERNAL) :: PAULI
+
+	max_site = maximum([o.site for o in term.operator])
+	# println(max_site)
+
+	str_array = ["I" for i in 0:max_site]
+    # println(str_array)
+	for o in term.operator
+		str_array[o.site+1] = o.name
+	end
+	pauli_string = join(reverse(str_array))
+	# println("string: ",pauli_string)
+
+	return term.prefactor * PAULI(pauli_string)
+end
+
 """
 
-    construct_matrix_fermion_biliners(basis, abstract_op)
-
-Makes a Hamiltonian from fermion bilinears. Only work for number-conserving Hamiltonians
-
-# Argument s
-- 'basis :: Basis': the basis for the spin chain
-- 'abstract_op :: HAMILTONIAN': the abstract operator to implement
 """
-function construct_matrix_fermion_biliners(basis :: BASIS, abstract_op :: ABSTRACT_OP)
-    dim = basis.L
+
+
+
+
+#formally untested, but this has been verified against other code from matlab, and a few other things
+"""
+
+    construct_matrix_full(basis, abstract_op)
+
+An internal method to quickly make an operator for the full basis with no symmetry constraints. 
+"""
+function construct_matrix_full_new(basis :: BASIS, abstract_op :: ABSTRACT_OP)
+
+    P_op = PauliOp(abstract_op)
+
+    return construct_matrix_full_new_Pauli(basis,P_op)
+end
+
+function construct_matrix_full_new_Pauli(basis :: BASIS, PauliStrings ::PauliOp)
+
+    dim = 2^basis.L
     H = spzeros(ComplexF64,dim,dim)
 
     #loop over terms in the Hamiltonian
-    for term in abstract_op.terms
-        op = term.operator
-        #is it the number operator?
-        if length(op) == 1 && op[1].name == "N"
-            i = op[1].site
-            j = i
-        else
-            #check ordering
-            if op[1].name == "D" && op[2].name == "C"
-                i = op[1].site
-                j = op[2].site
-            elseif op[1].name == "C" && op[2].name == "D"
-                i = op[2].site
-                j = op[1].site
-            else
-                error("Unknown term:", term)
-            end
-        end
-        # println(term)
-        # println("H[",i,",",j, "] = ", term.prefactor)
-        H[i+1,j+1]  = term.prefactor
-    end
+    for n in 0:dim-1
+      for (V,x) in PauliStrings
+        m = PAULI(x,V)*UInt64(n)
+        # println(P,"*",x,"=",y)
+        H[dim-m.state,dim-n] += m.factor
+      end
+  end
 
     return H
 end
+
+
+function PauliOp(abstract_op :: ABSTRACT_OP) :: PauliOp
+  O = Dict{VERT,Complex{Float64}}()
+  for term in consolidate_coefficients(abstract_op).terms
+    P = PauliString(term)
+
+    if haskey(O, P.V)
+      O[P.V] += P.x
+    else
+      O[P.V] = P.x
+    end
+  end
+
+  return O
+end
+
+
+
+# #UNTESTED!
+# """
+
+#     construct_matrix_fermion_biliners(basis, abstract_op)
+
+# Makes a Hamiltonian from fermion bilinears. Only work for number-conserving Hamiltonians
+
+# # Argument s
+# - 'basis :: Basis': the basis for the spin chain
+# - 'abstract_op :: HAMILTONIAN': the abstract operator to implement
+# """
+# function construct_matrix_fermion_biliners(basis :: BASIS, abstract_op :: ABSTRACT_OP)
+#     dim = basis.L
+#     H = spzeros(ComplexF64,dim,dim)
+
+#     #loop over terms in the Hamiltonian
+#     for term in abstract_op.terms
+#         op = term.operator
+#         #is it the number operator?
+#         if length(op) == 1 && op[1].name == "N"
+#             i = op[1].site
+#             j = i
+#         else
+#             #check ordering
+#             if op[1].name == "D" && op[2].name == "C"
+#                 i = op[1].site
+#                 j = op[2].site
+#             elseif op[1].name == "C" && op[2].name == "D"
+#                 i = op[2].site
+#                 j = op[1].site
+#             else
+#                 error("Unknown term:", term)
+#             end
+#         end
+#         # println(term)
+#         # println("H[",i,",",j, "] = ", term.prefactor)
+#         H[i+1,j+1]  = term.prefactor
+#     end
+
+#     return H
+# end
 
 #UNTESTED!
 

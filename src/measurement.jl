@@ -9,6 +9,7 @@
 ####################################################
 
 
+
 """
 
 	k_eigvals(H,k)
@@ -55,15 +56,15 @@ end
 #better to compute the reduced density matrix
 """
 
-	expectation(psi, O)
-		expectation_rho(rho, O)
+	expectationValue(psi, O)
+		expectationValue(rho, O)
 
 For a state `psi`, computes the expectation value ``\\left<\\psi|O|\\psi\\right>``  and operator `O`. This is a simple wrapper for `dot(psi, O*psi)` and works for any type of matrix `O`.
 
 For a density matrix `rho`, computes the expectation value ``\\operatorname{Tr}[\\rho O]``.
 
 """
-function expectation(
+function expectationValue(
 	psi :: Array{Complex{Float64}},
 	Op :: AbstractMatrix
 	)
@@ -79,7 +80,7 @@ function expectation(
 	# return corr
 end
 
-function expectation(
+function expectationValue(
 	rho :: Array{Complex{Float64}},
 	Op :: AbstractMatrix
 	)

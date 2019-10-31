@@ -5,7 +5,7 @@
 ######################################################################
 
 #include the ED_Sectors codebase
-include("../main.jl")
+include("../src/ED_sectors.jl")
 
 
 

@@ -22,6 +22,15 @@ struct SOP
 end
 Base.show(io::IO, sop::SOP) = print(io,  sop.name, "_", sop.site)
 
+# """
+# [Update doc]
+
+# A function for ordering single-site operators.
+# """
+# function isless(SOPA :: SOP, SOPB :: SOP)
+# 	return SOPA.site < SOPB.site
+# end
+
 
 """
 	parse_term(op, term)
@@ -425,4 +434,28 @@ function parse_TERM_to_internal(
 	end
 
 	return termsArray
+end
+
+
+"""
+[Update doc]
+
+A function for consolidating multiple coefficients for the same operator.
+"""
+function consolidate_coefficients(Op :: ABSTRACT_OP)
+
+	termsDict = Dict{Array{SOP},Complex{Float64}}()
+
+	for t in Op.terms
+		sorted = sort(t.operator,by= x-> x.site)
+		if !haskey(termsDict,sorted)
+			termsDict[sorted] = t.prefactor
+		else
+			termsDict[sorted] += t.prefactor
+		end
+	end
+
+	termsArray = [TERM_INTERNAL(factor,term) for (term,factor) in termsDict]
+
+	return ABSTRACT_OP(Op.L,Op.sites,Op.name,Op.pbc,termsArray)
 end
