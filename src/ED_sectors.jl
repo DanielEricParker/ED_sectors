@@ -37,7 +37,7 @@ module ED_sectors
 	include("measurement.jl")
 	#no datatypes to export!
 	#export functions
-	export k_eigvals, k_eigsys, expectationValue, reduce_density_matrix, entanglement_entropy, measure_EE
+	export k_eigvals, k_eigsys, expectationValue, reduce_density_matrix, entanglement_entropy, measure_EE, ground_state
 
 	include("full_spectrum_measurement.jl")
 	#export datatypes

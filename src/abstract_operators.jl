@@ -332,6 +332,10 @@ function Base.:+(O1 :: ABSTRACT_OP, O2 :: ABSTRACT_OP)::ABSTRACT_OP
 	return ABSTRACT_OP(O1.L,O1.sites,newName,O1.pbc,newTerms)
 end
 
+function Base.:-(O1 :: ABSTRACT_OP, O2 :: ABSTRACT_OP)::ABSTRACT_OP
+	O1 + (-O2)
+end
+
 """
 	x * Op
 	*(x, Op)
@@ -386,6 +390,8 @@ function Base.:+(op :: ABSTRACT_OP, term :: TERM)::ABSTRACT_OP
 		return ABSTRACT_OP(op.L,op.sites,op.name,op.pbc,newTerms)
 	end
 end
+
+Base.:-(op :: ABSTRACT_OP, term :: TERM)::ABSTRACT_OP = op + (-term)
 
 """
 	parse_term(op, term)
